@@ -105,3 +105,17 @@ str(data_Ctrl_Abs)
     ##  $ Phenotypes.ExperimentPopulationDoublings: num  6.73 6.31 6 5.82 5.69 ...
     ##  $ Phenotypes.ChapmanRichardsFit           : num  0.999 0.999 0.999 0.999 0.999 ...
     ##  $ Phenotypes.GenerationTimeWhen           : num  6.14 4.1 4.1 3.76 3.76 ...
+
+Several phenotypes are extracted. However, the most useful for this
+study will be,
+
+  - Column No: 14 i.e. **Phenotypes.ExperimentGrowthYield**
+  - Column No: 15 i.e. **Phenotypes.GenerationTime**
+
+Extract only this two column in the final data.frame  
+Rename the column names to prevent any ambiguity
+
+``` r
+data_Ctrl_Abs_Trim <- data_Ctrl_Abs[, 14:15]
+colnames(data_Ctrl_Abs_Trim) <- c("CTRL_Y_ABS", "CTRL_GT_ABS")
+```
