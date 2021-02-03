@@ -39,7 +39,7 @@ Plate 1 Normalized data in acetic acid (aa) stress have the string
 *aa1.phenotypes.Normalized*
 
 ## PURPOSE
-At the end of this data import session, a single data.frame will be generated with the data of 24 plates. The whole dataset will be labeled with the strains attributes using the metadata key file (provided in the COMPILED_DATA folder)  
+At the end of this data import session, a single data.frame will be generated with the data of 24 plates. The whole dataset will be labeled with the strains attributes using the metadata key file (provided in the COMPILED_DATA folder). The data import below is shown for only Round2 dataset. Round1 can be generated modifying the folder location
 
 **METADATA KEY FILE** : library_keyfile1536.csv
 
@@ -77,12 +77,57 @@ Rename the column names to prevent any ambiguity
 ```{r}
 data_Ctrl_Abs_Trim <- data_Ctrl_Abs[, 14:15]
 colnames(data_Ctrl_Abs_Trim) <- c("CTRL_Y_ABS", "CTRL_GT_ABS")
+str(data_Ctrl_Abs_Trim)
 ```
 
+#### GENERATE ACETIC ACID **ABSOLUTE** DATASET
 
+Following the same strategy as above
 
+```{r}
+m <- vector(mode = "character", length = 0)
+file.names<-vector(mode = "character", length = 0)
+temp_df<-data.frame()
+data_AA_Abs <- data.frame()
+for(i in 1:24){
+  m <- paste0("aa", i, ".phenotypes.Absolute") 
+  file.names[i] <- dir("RAW_DATA/SOM_SCR_R002/", pattern = m, full.names = TRUE)
+  temp_df <- read.csv(file.names[i], na.strings = "NoGrowth")
+  data_AA_Abs <- rbind(data_AA_Abs, temp_df)
+}
+data_AA_Abs_Trim <- data_AA_Abs[, 14:15]
+colnames(data_AA_Abs_Trim) <- c("AA_Y_ABS", "AA_GT_ABS")
+```
 
+#### GENERATE BASAL **NORMALIZED** DATASET
 
+```{r}
+m <- vector(mode = "character", length = 0)
+file.names<-vector(mode = "character", length = 0)
+temp_df<-data.frame()
+data_Ctrl_Norm <- data.frame()
+for(i in 1:24){
+  m <- paste0("Ctrl", i, ".phenotypes.Normalized") 
+  file.names[i] <- dir("RAW_DATA/SOM_SCR_R002/", pattern = m, full.names = TRUE)
+  temp_df <- read.csv(file.names[i], na.strings = "NoGrowth")
+  data_Ctrl_Norm <- rbind(data_Ctrl_Norm, temp_df)
+}
+str(data_Ctrl_Norm)
+```
+
+The most useful for this study will be,
+
+* Column No: 4 i.e. Phenotypes.ExperimentGrowthYield 
+* Column No: 5 i.e. Phenotypes.GenerationTime
+
+Extract only this two column  
+
+```{r}
+data_Ctrl_Norm_Trim <- data_Ctrl_Norm[, 4:5]
+colnames(data_Ctrl_Norm_Trim) <- c("CTRL_Y_NORM", "CTRL_GT_NORM")
+```
+
+#### GENERATE ACETIC ACID **NORMALIZED** DATASET
 
 
 

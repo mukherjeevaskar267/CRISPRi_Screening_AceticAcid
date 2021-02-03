@@ -46,7 +46,8 @@ Plate 1 Normalized data in acetic acid (aa) stress have the string
 At the end of this data import session, a single data.frame will be
 generated with the data of 24 plates. The whole dataset will be labeled
 with the strains attributes using the metadata key file (provided in the
-COMPILED\_DATA folder)
+COMPILED\_DATA folder). The data import below is shown for only Round2
+dataset. Round1 can be generated modifying the folder location
 
 **METADATA KEY FILE** : library\_keyfile1536.csv
 
@@ -118,4 +119,66 @@ Rename the column names to prevent any ambiguity
 ``` r
 data_Ctrl_Abs_Trim <- data_Ctrl_Abs[, 14:15]
 colnames(data_Ctrl_Abs_Trim) <- c("CTRL_Y_ABS", "CTRL_GT_ABS")
+str(data_Ctrl_Abs_Trim)
+```
+
+    ## 'data.frame':    36864 obs. of  2 variables:
+    ##  $ CTRL_Y_ABS : num  8533790 6626182 5943280 5455589 5133404 ...
+    ##  $ CTRL_GT_ABS: num  2.53 2.48 2.51 2.56 2.53 ...
+
+#### GENERATE ACETIC ACID **ABSOLUTE** DATASET
+
+Following the same strategy as above
+
+``` r
+m <- vector(mode = "character", length = 0)
+file.names<-vector(mode = "character", length = 0)
+temp_df<-data.frame()
+data_AA_Abs <- data.frame()
+for(i in 1:24){
+  m <- paste0("aa", i, ".phenotypes.Absolute") 
+  file.names[i] <- dir("RAW_DATA/SOM_SCR_R002/", pattern = m, full.names = TRUE)
+  temp_df <- read.csv(file.names[i], na.strings = "NoGrowth")
+  data_AA_Abs <- rbind(data_AA_Abs, temp_df)
+}
+data_AA_Abs_Trim <- data_AA_Abs[, 14:15]
+colnames(data_AA_Abs_Trim) <- c("AA_Y_ABS", "AA_GT_ABS")
+```
+
+#### GENERATE BASAL **NORMALIZED** DATASET
+
+``` r
+m <- vector(mode = "character", length = 0)
+file.names<-vector(mode = "character", length = 0)
+temp_df<-data.frame()
+data_Ctrl_Norm <- data.frame()
+for(i in 1:24){
+  m <- paste0("Ctrl", i, ".phenotypes.Normalized") 
+  file.names[i] <- dir("RAW_DATA/SOM_SCR_R002/", pattern = m, full.names = TRUE)
+  temp_df <- read.csv(file.names[i], na.strings = "NoGrowth")
+  data_Ctrl_Norm <- rbind(data_Ctrl_Norm, temp_df)
+}
+str(data_Ctrl_Norm)
+```
+
+    ## 'data.frame':    36864 obs. of  8 variables:
+    ##  $ Plate                                   : int  0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ Row                                     : int  0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ Column                                  : int  0 1 2 3 4 5 6 7 8 9 ...
+    ##  $ Phenotypes.ExperimentGrowthYield        : num  0.755 0.39 0.233 0.484 0.396 ...
+    ##  $ Phenotypes.GenerationTime               : num  0.0505 0.0204 0.0389 -0.0173 -0.0327 ...
+    ##  $ Phenotypes.ExperimentPopulationDoublings: num  0.1907 0.0991 0.0272 0.113 0.0818 ...
+    ##  $ Phenotypes.ExperimentBaseLine           : num  -0.0884 -0.0347 0.1195 0.0367 0.0758 ...
+    ##  $ Phenotypes.ColonySize48h                : num  0.584 0.301 0.193 0.397 0.32 ...
+
+The most useful for this study will be,
+
+  - Column No: 4 i.e. Phenotypes.ExperimentGrowthYield
+  - Column No: 5 i.e. Phenotypes.GenerationTime
+
+Extract only this two column
+
+``` r
+data_Ctrl_Norm_Trim <- data_Ctrl_Norm[, 4:5]
+colnames(data_Ctrl_Norm_Trim) <- c("CTRL_Y_NORM", "CTRL_GT_NORM")
 ```
