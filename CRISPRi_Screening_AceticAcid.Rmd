@@ -1,0 +1,67 @@
+---
+title: "CRISPRi_Phenomics_Analysis"
+author: "Vaskar Mukherjee"
+date: "2/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# IMPORT SCAN-O-MATIC RAW DATA
+
+The phenotypic data generated in scan-o-matic screening in .csv format. 
+We extract both the absolute and the normalized phenotypes.
+
+The CRISPRi strains in the library were arrayed in 24 plates in 384 format. Each CRISPRi plate was subjected to two different condition (Basal and 150 mM of Acetic acid). Therefore, for each plate four different files are generated. All files generated in a single independent experimental round are stored in a single folder. 
+
+* **SOM_SCR_R001** : Raw data for round1
+
+* **SOM_SCR_R002** : Raw data for round2
+
+**ABSOLUTE DATA**
+
+The **Absolute** dataset gives the extracted phenotypes without any spatial normalization  
+
+**NORMALIZED DATA**
+
+The **Normalized** dataset is generated after removal of any spatial bias. This is in log2 scale and referred as Log Strain Coefficient (LSC) values
+
+**FILE NAMING**
+
+Each file is named with the plate identifier in such a way so that it can be easily called programmatically  
+
+Eg. Plate 1 absolute data in basal (Ctrl) condition have the following string  
+*Ctrl1.phenotypes.Absolute*  
+AND  
+Plate 1 Normalized data in acetic acid (aa) stress have the string  
+*aa1.phenotypes.Normalized*
+
+## PURPOSE
+At the end of this data import session, a single data.frame will be generated with the data of 24 plates. The whole dataset will be labeled with the strains attributes using the metadata key file (provided in the COMPILED_DATA folder)  
+
+**METADATA KEY FILE** : library_keyfile1536.csv
+
+#### IMPORTING THE METADATA FILE  
+
+```{r}
+Metadata_CRISPRi <- read.csv("COMPILED_DATA/library_keyfile1536.csv", na.strings = "#N/A", stringsAsFactors = FALSE)
+str(Metadata_CRISPRi)
+```
+
+#### GENERATE BASAL **ABSOLUTE** DATASET
+
+```{r}
+m <- vector(mode = "character", length = 0)
+file.names<-vector(mode = "character", length = 0)
+temp_df<-data.frame()
+data_Ctrl_Abs <- data.frame()
+for(i in 1:24){
+  m <- paste0("Ctrl", i, ".phenotypes.Absolute") 
+  file.names[i] <- dir("RAW_DATA/SOM_SCR_R002/", pattern = m, full.names = TRUE)
+  temp_df <- read.csv(file.names[i], na.strings = "NoGrowth")
+  data_Ctrl_Abs <- rbind(data_Ctrl_Abs, temp_df)
+}
+str(data_Ctrl_Abs)
+```
