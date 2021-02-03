@@ -2,7 +2,7 @@
 title: "CRISPRi_Phenomics_Analysis"
 author: "Vaskar Mukherjee"
 date: "2/3/2021"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
