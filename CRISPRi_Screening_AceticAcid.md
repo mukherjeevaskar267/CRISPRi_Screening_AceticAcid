@@ -19,9 +19,20 @@ Vaskar Mukherjee
       - [IMPORT RESULTS FROM ROUND1](#import-results-from-round1)
       - [COMBINE THE DATASETS of ROUND 1 AND
         2](#combine-the-datasets-of-round-1-and-2)
-  - [ANALYSIS](#analysis)
+  - [SCAN-O-MATIC PHENOMICS ANALYSIS](#scan-o-matic-phenomics-analysis)
       - [ESTIMATE THE LOG PHENOTYPIC INDEX (LPI)
         VALUES](#estimate-the-log-phenotypic-index-lpi-values)
+      - [PERFORM PLATE-WISE BATCH
+        CORRECTION](#perform-plate-wise-batch-correction)
+      - [ESTIMATE THE BATCH CORRECTED LOG PHENOTYPIC INDEX (LPI)
+        VALUES](#estimate-the-batch-corrected-log-phenotypic-index-lpi-values)
+      - [SETTING THE NAMES OF THE NEW
+        COLUMNS](#setting-the-names-of-the-new-columns)
+      - [EXTRACT ONLY THE BATCH CORRECTED
+        COLUMNS](#extract-only-the-batch-corrected-columns)
+      - [CONSTRUCT A NEW DATA
+        STRUCTURE](#construct-a-new-data-structure)
+          - [REMOVE ROWS](#remove-rows)
 
 # IMPORT SCAN-O-MATIC RAW DATA
 
@@ -309,6 +320,213 @@ str(whole_data_R1)
 whole_data_CRISPRi_aa <- rbind(whole_data_R1, whole_data_R2)
 ```
 
-# ANALYSIS
+# SCAN-O-MATIC PHENOMICS ANALYSIS
+
+In this study most of the downstream analysis was performed using the
+phenotype Generation\_time(GT)
 
 ## ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES
+
+LPI of strain is the difference of its normalized Generation\_Time(GT) /
+Yield(Y) (LSC, see [IMPORT SCAN-O-MATIC RAW
+DATA](#import-scan-o-matic-raw-data)) on acetic acid stress plate to the
+basal condition. It gives a relative estimate of how a strain performed
+under acetic acid stress relative to the basal condition.
+
+i.e. LPI\_GT = LSC\_GT\_Acetic\_Acid - LSC\_GT\_Basal
+
+``` r
+whole_data_CRISPRi_aa[, 21] <- whole_data_CRISPRi_aa[, 19]-whole_data_CRISPRi_aa[, 17]
+whole_data_CRISPRi_aa[, 22] <- whole_data_CRISPRi_aa[, 20]-whole_data_CRISPRi_aa[, 18]
+colnames(whole_data_CRISPRi_aa)[21] <- "LPI_Y"
+colnames(whole_data_CRISPRi_aa)[22] <- "LPI_GT"
+```
+
+## PERFORM PLATE-WISE BATCH CORRECTION
+
+Plate-wise batch correction was conducted by subtracting the median of
+LSC GT values of all the individual colonies on a plate from the
+individual LSC GT values of the colonies growing on that plate.
+
+i.e. if strainX is growing in Basal condition on plate Z, the corrected
+LSC\_GT value for strainX in the Basal condition is the following;
+
+  - LSC\_GT\_Basal\_Corrected<sub>strainX</sub> =
+    (LSC\_GT\_Basal<sub>strainX</sub>) - Median(LSC\_GT
+    Basal<sub>PlateZ</sub>)
+
+<!-- end list -->
+
+``` r
+plate_ID <- as.character(unique(whole_data_CRISPRi_aa$SOURCEPLATEID))
+whole_data_CRISPRi_aa_corrected <- whole_data_CRISPRi_aa
+med_LogLSCctrl_RND1_GT <- vector(mode = "integer", length = 0)
+med_LogLSCaa_RND1_GT <- vector(mode = "integer", length = 0)
+med_LogLSCctrl_RND2_GT <- vector(mode = "integer", length = 0)
+med_LogLSCaa_RND2_GT <- vector(mode = "integer", length = 0)
+med_LogLSCctrl_RND1_Y <- vector(mode = "integer", length = 0)
+med_LogLSCaa_RND1_Y <- vector(mode = "integer", length = 0)
+med_LogLSCctrl_RND2_Y <- vector(mode = "integer", length = 0)
+med_LogLSCaa_RND2_Y <- vector(mode = "integer", length = 0)
+
+for(i in 1:24){
+med_LogLSCctrl_RND1_GT[i] <- median(whole_data_CRISPRi_aa_corrected$CTRL_GT_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                       & !is.na(whole_data_CRISPRi_aa_corrected$CTRL_GT_NORM) 
+                                                                                         & whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round")])
+
+med_LogLSCaa_RND1_GT[i] <- median(whole_data_CRISPRi_aa_corrected$AA_GT_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                     & !is.na(whole_data_CRISPRi_aa_corrected$AA_GT_NORM) 
+                                                                                     & whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round")])
+
+med_LogLSCctrl_RND2_GT[i] <- median(whole_data_CRISPRi_aa_corrected$CTRL_GT_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                         & !is.na(whole_data_CRISPRi_aa_corrected$CTRL_GT_NORM) 
+                                                                                         & whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round")])
+
+med_LogLSCaa_RND2_GT[i] <- median(whole_data_CRISPRi_aa_corrected$AA_GT_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                     & !is.na(whole_data_CRISPRi_aa_corrected$AA_GT_NORM) 
+                                                                                     & whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round")])
+
+med_LogLSCctrl_RND1_Y[i] <- median(whole_data_CRISPRi_aa_corrected$CTRL_Y_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                       & !is.na(whole_data_CRISPRi_aa_corrected$CTRL_Y_NORM) 
+                                                                                       & whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round")])
+
+med_LogLSCaa_RND1_Y[i] <- median(whole_data_CRISPRi_aa_corrected$AA_Y_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                   & !is.na(whole_data_CRISPRi_aa_corrected$AA_Y_NORM) 
+                                                                                   & whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round")])
+
+med_LogLSCctrl_RND2_Y[i] <- median(whole_data_CRISPRi_aa_corrected$CTRL_Y_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                       & !is.na(whole_data_CRISPRi_aa_corrected$CTRL_Y_NORM) 
+                                                                                       & whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round")])
+
+med_LogLSCaa_RND2_Y[i] <- median(whole_data_CRISPRi_aa_corrected$AA_Y_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                   & !is.na(whole_data_CRISPRi_aa_corrected$AA_Y_NORM) 
+                                                                                   & whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round")])
+  
+whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round") , 23] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round"), 17] - med_LogLSCctrl_RND1_Y[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round") , 24] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round"), 18] - med_LogLSCctrl_RND1_GT[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round") , 23] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round"), 17] - med_LogLSCctrl_RND2_Y[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round") , 24] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round"), 18] - med_LogLSCctrl_RND2_GT[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round") , 25] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round"), 19] - med_LogLSCaa_RND1_Y[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round") , 26] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round"), 20] - med_LogLSCaa_RND1_GT[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round") , 25] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round"), 19] - med_LogLSCaa_RND2_Y[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round") , 26] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round"), 20] - med_LogLSCaa_RND2_GT[i]
+}
+```
+
+## ESTIMATE THE BATCH CORRECTED LOG PHENOTYPIC INDEX (LPI) VALUES
+
+Estimate the corrected LPI values (see [ESTIMATE THE LOG PHENOTYPIC
+INDEX (LPI) VALUES](#estimate-the-log-phenotypic-index-lpi-values))
+based on the corrected LSC values
+
+i.e. LPI\_GT<sub>corrected</sub> =
+LSC\_GT\_Acetic\_Acid<sub>corrected</sub> -
+LSC\_GT\_Basal<sub>corrected</sub>
+
+**Estimate the corrected LPI\_Y**
+
+``` r
+whole_data_CRISPRi_aa_corrected[, 27] <- whole_data_CRISPRi_aa_corrected[, 25] - whole_data_CRISPRi_aa_corrected[, 23]
+```
+
+**Estimate the corrected LPI\_GT**
+
+``` r
+whole_data_CRISPRi_aa_corrected[, 28] <- whole_data_CRISPRi_aa_corrected[, 26] - whole_data_CRISPRi_aa_corrected[, 24] 
+```
+
+## SETTING THE NAMES OF THE NEW COLUMNS
+
+``` r
+colnm <- colnames(whole_data_CRISPRi_aa)[17:22]
+colnm <- paste0(colnm, "_CR")
+colnames(whole_data_CRISPRi_aa_corrected)[23:28] <- colnm
+str(whole_data_CRISPRi_aa_corrected)
+```
+
+    ## 'data.frame':    73728 obs. of  28 variables:
+    ##  $ SL_No             : num  1 2 3 4 5 6 7 8 9 10 ...
+    ##  $ gRNA_name         : chr  "FBP26-TRg-1" "FBP26-TRg-1" "HMI1-NRg-1" "HMI1-NRg-1" ...
+    ##  $ Seq               : chr  "GCTTATCATACATTTACATC" "GCTTATCATACATTTACATC" "AAAAATTCTGACACATCACA" "AAAAATTCTGACACATCACA" ...
+    ##  $ SOURCEPLATEID     : chr  "R2877.H.001" "R2877.H.001" "R2877.H.001" "R2877.H.001" ...
+    ##  $ SOURCEDENSITY     : chr  "384A" "384A" "384A" "384A" ...
+    ##  $ SOURCECOLONYCOLUMN: int  1 1 2 2 3 3 4 4 5 5 ...
+    ##  $ SOURCECOLONYROW   : chr  "A" "A" "A" "A" ...
+    ##  $ border            : logi  TRUE TRUE TRUE TRUE TRUE TRUE ...
+    ##  $ GENE              : chr  "FBP26" "FBP26" "HMI1" "HMI1" ...
+    ##  $ Control.gRNA      : int  0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ Location_1536     : chr  "A1" "A2" "A3" "A4" ...
+    ##  $ Round_ID          : chr  "1st_round" "1st_round" "1st_round" "1st_round" ...
+    ##  $ CTRL_Y_ABS        : num  7046465 5380541 4841666 4517281 4209174 ...
+    ##  $ CTRL_GT_ABS       : num  3.15 3.64 3.18 3.04 3.13 ...
+    ##  $ AA_Y_ABS          : num  833657 844666 708042 734725 717147 ...
+    ##  $ AA_GT_ABS         : num  13.1 13.6 14.5 14.7 13.6 ...
+    ##  $ CTRL_Y_NORM       : num  0.899 0.51 0.358 0.565 0.463 ...
+    ##  $ CTRL_GT_NORM      : num  -0.10076 0.10855 -0.08699 0.00504 0.0462 ...
+    ##  $ AA_Y_NORM         : num  -0.362 -0.343 -0.598 -0.642 -0.677 ...
+    ##  $ AA_GT_NORM        : num  0.273 0.331 0.423 0.425 0.313 ...
+    ##  $ LPI_Y             : num  -1.262 -0.854 -0.956 -1.207 -1.14 ...
+    ##  $ LPI_GT            : num  0.374 0.223 0.51 0.42 0.266 ...
+    ##  $ CTRL_Y_NORM_CR    : num  0.918 0.529 0.376 0.583 0.482 ...
+    ##  $ CTRL_GT_NORM_CR   : num  -0.0877 0.1216 -0.074 0.0181 0.0592 ...
+    ##  $ AA_Y_NORM_CR      : num  -0.0736 -0.0547 -0.3092 -0.3534 -0.3883 ...
+    ##  $ AA_GT_NORM_CR     : num  0.19 0.248 0.34 0.342 0.229 ...
+    ##  $ LPI_Y_CR          : num  -0.991 -0.583 -0.686 -0.937 -0.87 ...
+    ##  $ LPI_GT_CR         : num  0.278 0.127 0.414 0.323 0.17 ...
+
+## EXTRACT ONLY THE BATCH CORRECTED COLUMNS
+
+``` r
+whole_data_CRISPRi_aa_2 <- whole_data_CRISPRi_aa_corrected[, c(1:16, 23:28)]
+colnames(whole_data_CRISPRi_aa_2)[17:22] <- colnames(whole_data_CRISPRi_aa)[17:22]
+str(whole_data_CRISPRi_aa_2)
+```
+
+    ## 'data.frame':    73728 obs. of  22 variables:
+    ##  $ SL_No             : num  1 2 3 4 5 6 7 8 9 10 ...
+    ##  $ gRNA_name         : chr  "FBP26-TRg-1" "FBP26-TRg-1" "HMI1-NRg-1" "HMI1-NRg-1" ...
+    ##  $ Seq               : chr  "GCTTATCATACATTTACATC" "GCTTATCATACATTTACATC" "AAAAATTCTGACACATCACA" "AAAAATTCTGACACATCACA" ...
+    ##  $ SOURCEPLATEID     : chr  "R2877.H.001" "R2877.H.001" "R2877.H.001" "R2877.H.001" ...
+    ##  $ SOURCEDENSITY     : chr  "384A" "384A" "384A" "384A" ...
+    ##  $ SOURCECOLONYCOLUMN: int  1 1 2 2 3 3 4 4 5 5 ...
+    ##  $ SOURCECOLONYROW   : chr  "A" "A" "A" "A" ...
+    ##  $ border            : logi  TRUE TRUE TRUE TRUE TRUE TRUE ...
+    ##  $ GENE              : chr  "FBP26" "FBP26" "HMI1" "HMI1" ...
+    ##  $ Control.gRNA      : int  0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ Location_1536     : chr  "A1" "A2" "A3" "A4" ...
+    ##  $ Round_ID          : chr  "1st_round" "1st_round" "1st_round" "1st_round" ...
+    ##  $ CTRL_Y_ABS        : num  7046465 5380541 4841666 4517281 4209174 ...
+    ##  $ CTRL_GT_ABS       : num  3.15 3.64 3.18 3.04 3.13 ...
+    ##  $ AA_Y_ABS          : num  833657 844666 708042 734725 717147 ...
+    ##  $ AA_GT_ABS         : num  13.1 13.6 14.5 14.7 13.6 ...
+    ##  $ CTRL_Y_NORM       : num  0.918 0.529 0.376 0.583 0.482 ...
+    ##  $ CTRL_GT_NORM      : num  -0.0877 0.1216 -0.074 0.0181 0.0592 ...
+    ##  $ AA_Y_NORM         : num  -0.0736 -0.0547 -0.3092 -0.3534 -0.3883 ...
+    ##  $ AA_GT_NORM        : num  0.19 0.248 0.34 0.342 0.229 ...
+    ##  $ LPI_Y             : num  -0.991 -0.583 -0.686 -0.937 -0.87 ...
+    ##  $ LPI_GT            : num  0.278 0.127 0.414 0.323 0.17 ...
+
+## CONSTRUCT A NEW DATA STRUCTURE
+
+Construct a new data structure where data from each strain (have a
+unique sgRNA) is in a separate row and the replicates from first and
+second round are side by side. Add also the mean, median and standard
+deviation statistics for each phenotype
+
+### REMOVE ROWS
