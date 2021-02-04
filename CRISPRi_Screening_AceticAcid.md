@@ -1,7 +1,27 @@
-CRISPRi\_Phenomics\_Analysis
+CRISPRi PHENOMICS DATA ANALYSIS
 ================
 Vaskar Mukherjee
 2/3/2021
+
+  - [IMPORT SCAN-O-MATIC RAW DATA](#import-scan-o-matic-raw-data)
+      - [PURPOSE](#purpose)
+      - [IMPORTING THE METADATA FILE](#importing-the-metadata-file)
+      - [GENERATE BASAL **ABSOLUTE**
+        DATASET](#generate-basal-absolute-dataset)
+      - [GENERATE ACETIC ACID **ABSOLUTE**
+        DATASET](#generate-acetic-acid-absolute-dataset)
+      - [GENERATE BASAL **NORMALIZED**
+        DATASET](#generate-basal-normalized-dataset)
+      - [GENERATE ACETIC ACID **NORMALIZED**
+        DATASET](#generate-acetic-acid-normalized-dataset)
+      - [COMBINE THE DATASETS TO OBTAIN FINAL
+        DATAFRAME](#combine-the-datasets-to-obtain-final-dataframe)
+      - [IMPORT RESULTS FROM ROUND1](#import-results-from-round1)
+      - [COMBINE THE DATASETS of ROUND 1 AND
+        2](#combine-the-datasets-of-round-1-and-2)
+  - [ANALYSIS](#analysis)
+      - [ESTIMATE THE LOG PHENOTYPIC INDEX (LPI)
+        VALUES](#estimate-the-log-phenotypic-index-lpi-values)
 
 # IMPORT SCAN-O-MATIC RAW DATA
 
@@ -288,3 +308,7 @@ str(whole_data_R1)
 ``` r
 whole_data_CRISPRi_aa <- rbind(whole_data_R1, whole_data_R2)
 ```
+
+# ANALYSIS
+
+## ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES

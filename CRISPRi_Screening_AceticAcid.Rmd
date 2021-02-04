@@ -1,15 +1,18 @@
 ---
-title: "CRISPRi_Phenomics_Analysis"
+title: "CRISPRi PHENOMICS DATA ANALYSIS"
 author: "Vaskar Mukherjee"
 date: "2/3/2021"
-output: github_document
+output: 
+  github_document:
+    toc: true
+    toc_depth: 4
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# 1. IMPORT SCAN-O-MATIC RAW DATA
+# IMPORT SCAN-O-MATIC RAW DATA
 
 The phenotypic data generated in scan-o-matic screening in .csv format. 
 We extract both the absolute and the normalized phenotypes.
@@ -38,19 +41,19 @@ AND
 Plate 1 Normalized data in acetic acid (aa) stress have the string  
 *aa1.phenotypes.Normalized*
 
-## 1.1 PURPOSE
+## PURPOSE
 At the end of this data import session, a single data.frame will be generated with the data of 24 plates. The whole dataset will be labeled with the strains attributes using the metadata key file (provided in the COMPILED_DATA folder). The data import below is shown for only Round2 dataset. Round1 can be generated modifying the folder location
 
 **METADATA KEY FILE** : library_keyfile1536.csv
 
-## 1.2 IMPORTING THE METADATA FILE  
+## IMPORTING THE METADATA FILE  
 
 ```{r}
 Metadata_CRISPRi <- read.csv("COMPILED_DATA/library_keyfile1536.csv", na.strings = "#N/A", stringsAsFactors = FALSE)
 str(Metadata_CRISPRi)
 ```
 
-## 1.3 GENERATE BASAL **ABSOLUTE** DATASET
+## GENERATE BASAL **ABSOLUTE** DATASET
 
 ```{r}
 m <- vector(mode = "character", length = 0)
@@ -80,7 +83,7 @@ colnames(data_Ctrl_Abs_Trim) <- c("CTRL_Y_ABS", "CTRL_GT_ABS")
 str(data_Ctrl_Abs_Trim)
 ```
 
-## 1.4 GENERATE ACETIC ACID **ABSOLUTE** DATASET
+## GENERATE ACETIC ACID **ABSOLUTE** DATASET
 
 Following the same strategy as above
 
@@ -99,7 +102,7 @@ data_AA_Abs_Trim <- data_AA_Abs[, 14:15]
 colnames(data_AA_Abs_Trim) <- c("AA_Y_ABS", "AA_GT_ABS")
 ```
 
-## 1.5 GENERATE BASAL **NORMALIZED** DATASET
+## GENERATE BASAL **NORMALIZED** DATASET
 
 ```{r}
 m <- vector(mode = "character", length = 0)
@@ -127,7 +130,7 @@ data_Ctrl_Norm_Trim <- data_Ctrl_Norm[, 4:5]
 colnames(data_Ctrl_Norm_Trim) <- c("CTRL_Y_NORM", "CTRL_GT_NORM")
 ```
 
-## 1.6 GENERATE ACETIC ACID **NORMALIZED** DATASET
+## GENERATE ACETIC ACID **NORMALIZED** DATASET
 
 Same as above 
 
@@ -146,7 +149,7 @@ data_AA_Norm_Trim <- data_AA_Norm[, 4:5]
 colnames(data_AA_Norm_Trim) <- c("AA_Y_NORM", "AA_GT_NORM")
 ```
 
-## 1.7 COMBINE THE DATASETS TO OBTAIN FINAL DATAFRAME
+## COMBINE THE DATASETS TO OBTAIN FINAL DATAFRAME
 
 Trimmed datasets are combined to obtain the final data.frame.
 The combined data frame is labeled as data from ROUND2
@@ -164,7 +167,7 @@ colnames(whole_data_R2)[12] <- "Round_ID"
 str(whole_data_R2)
 ```
 
-## 1.8 IMPORT RESULTS FROM ROUND1
+## IMPORT RESULTS FROM ROUND1
 
 The results from Round1 is already compiled to a .csv file in COMPILED_DATA folder
 **Results 1st Round** : 20190903_CRISPRi_Screen_aa_1st_round.csv
@@ -182,9 +185,119 @@ colnames(whole_data_R1)[12] <- "Round_ID"
 str(whole_data_R1)
 ```
 
-## 1.9 COMBINE THE DATASETS of ROUND 1 AND 2
+## COMBINE THE DATASETS of ROUND 1 AND 2
 
 ```{r}
 whole_data_CRISPRi_aa <- rbind(whole_data_R1, whole_data_R2)
 ```
+
+# SCAN-O-MATIC PHENOMICS ANALYSIS 
+
+In this study most of the downstream analysis was performed using the phenotype Generation_time(GT)
+
+## PERFORM PLATE-WISE BATCH CORRECTION
+
+Plate-wise batch correction was conducted by subtracting the median of LSC GT values (see [# IMPORT SCAN-O-MATIC RAW DATA]) of all the individual colonies on a plate from the individual LSC GT values of the colonies growing on that plate. 
+
+i.e. if strainX is growing in Basal condition on plate Z, the corrected LSC_GT value for strainX in the Basal condition is the following;
+
+* LSC_GT_Basal_Corrected~strainX~ = (LSC_GT_Basal~strainX~) - Median(LSC_GT Basal~PlateZ~)
+
+```{r}
+plate_ID <- as.character(unique(whole_data_CRISPRi_aa$SOURCEPLATEID))
+whole_data_CRISPRi_aa_corrected <- whole_data_CRISPRi_aa
+med_LogLSCctrl_RND1_GT <- vector(mode = "integer", length = 0)
+med_LogLSCaa_RND1_GT <- vector(mode = "integer", length = 0)
+med_LogLSCctrl_RND2_GT <- vector(mode = "integer", length = 0)
+med_LogLSCaa_RND2_GT <- vector(mode = "integer", length = 0)
+med_LogLSCctrl_RND1_Y <- vector(mode = "integer", length = 0)
+med_LogLSCaa_RND1_Y <- vector(mode = "integer", length = 0)
+med_LogLSCctrl_RND2_Y <- vector(mode = "integer", length = 0)
+med_LogLSCaa_RND2_Y <- vector(mode = "integer", length = 0)
+```
+for(i in 1:24){
+med_LogLSCctrl_RND1_GT[i] <- median(whole_data_CRISPRi_aa_corrected$CTRL_GT_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                       & !is.na(whole_data_CRISPRi_aa_corrected$CTRL_GT_NORM) 
+                                                                                         & whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round")])
+
+med_LogLSCaa_RND1_GT[i] <- median(whole_data_CRISPRi_aa_corrected$AA_GT_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                     & !is.na(whole_data_CRISPRi_aa_corrected$AA_GT_NORM) 
+                                                                                     & whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round")])
+
+med_LogLSCctrl_RND2_GT[i] <- median(whole_data_CRISPRi_aa_corrected$CTRL_GT_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                         & !is.na(whole_data_CRISPRi_aa_corrected$CTRL_GT_NORM) 
+                                                                                         & whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round")])
+
+med_LogLSCaa_RND2_GT[i] <- median(whole_data_CRISPRi_aa_corrected$AA_GT_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                     & !is.na(whole_data_CRISPRi_aa_corrected$AA_GT_NORM) 
+                                                                                     & whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round")])
+
+med_LogLSCctrl_RND1_Y[i] <- median(whole_data_CRISPRi_aa_corrected$CTRL_Y_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                       & !is.na(whole_data_CRISPRi_aa_corrected$CTRL_Y_NORM) 
+                                                                                       & whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round")])
+
+med_LogLSCaa_RND1_Y[i] <- median(whole_data_CRISPRi_aa_corrected$AA_Y_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                   & !is.na(whole_data_CRISPRi_aa_corrected$AA_Y_NORM) 
+                                                                                   & whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round")])
+
+med_LogLSCctrl_RND2_Y[i] <- median(whole_data_CRISPRi_aa_corrected$CTRL_Y_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                       & !is.na(whole_data_CRISPRi_aa_corrected$CTRL_Y_NORM) 
+                                                                                       & whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round")])
+
+med_LogLSCaa_RND2_Y[i] <- median(whole_data_CRISPRi_aa_corrected$AA_Y_NORM[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i]
+                                                                                   & !is.na(whole_data_CRISPRi_aa_corrected$AA_Y_NORM) 
+                                                                                   & whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round")])
+  
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round") , 23] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round"), 17] - med_LogLSCctrl_RND1_Y[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round") , 24] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round"), 18] - med_LogLSCctrl_RND1_GT[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round") , 23] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round"), 17] - med_LogLSCctrl_RND2_Y[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round") , 24] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round"), 18] - med_LogLSCctrl_RND2_GT[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round") , 25] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round"), 19] - med_LogLSCaa_RND1_Y[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round") , 26] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="1st_round"), 20] - med_LogLSCaa_RND1_GT[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round") , 25] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round"), 19] - med_LogLSCaa_RND2_Y[i]
+  whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                          whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round") , 26] <- whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLATEID==plate_ID[i] &
+                                                                                                                                                  whole_data_CRISPRi_aa_corrected$Round_ID=="2nd_round"), 20] - med_LogLSCaa_RND2_GT[i]
+}
+
+# Determining the corrected LPI_Y 
+whole_data_CRISPRi_aa_corrected[, 27] <- whole_data_CRISPRi_aa_corrected[, 25] - whole_data_CRISPRi_aa_corrected[, 23]
+# Determining the corrected LPI_GT
+whole_data_CRISPRi_aa_corrected[, 28] <- whole_data_CRISPRi_aa_corrected[, 26] - whole_data_CRISPRi_aa_corrected[, 24] 
+
+
+## ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES
+
+LPI of strain is the difference of its normalized Generation_Time(GT) / Yield(Y) on acetic acid stress plate to the basal condition. It gives a relative estimate of how a strain performed under acetic acid stress relative to the basal condition.   i.e. LPI GT = AA_GT_NORM - CTRL_GT_NORM 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
