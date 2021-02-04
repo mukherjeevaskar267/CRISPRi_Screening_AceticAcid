@@ -51,7 +51,7 @@ dataset. Round1 can be generated modifying the folder location
 
 **METADATA KEY FILE** : library\_keyfile1536.csv
 
-#### IMPORTING THE METADATA FILE
+## IMPORTING THE METADATA FILE
 
 ``` r
 Metadata_CRISPRi <- read.csv("COMPILED_DATA/library_keyfile1536.csv", na.strings = "#N/A", stringsAsFactors = FALSE)
@@ -71,7 +71,7 @@ str(Metadata_CRISPRi)
     ##  $ Control.gRNA      : int  0 0 0 0 0 0 0 0 0 0 ...
     ##  $ Location_1536     : chr  "A1" "A2" "A3" "A4" ...
 
-#### GENERATE BASAL **ABSOLUTE** DATASET
+## GENERATE BASAL **ABSOLUTE** DATASET
 
 ``` r
 m <- vector(mode = "character", length = 0)
@@ -126,7 +126,7 @@ str(data_Ctrl_Abs_Trim)
     ##  $ CTRL_Y_ABS : num  8533790 6626182 5943280 5455589 5133404 ...
     ##  $ CTRL_GT_ABS: num  2.53 2.48 2.51 2.56 2.53 ...
 
-#### GENERATE ACETIC ACID **ABSOLUTE** DATASET
+## GENERATE ACETIC ACID **ABSOLUTE** DATASET
 
 Following the same strategy as above
 
@@ -145,7 +145,7 @@ data_AA_Abs_Trim <- data_AA_Abs[, 14:15]
 colnames(data_AA_Abs_Trim) <- c("AA_Y_ABS", "AA_GT_ABS")
 ```
 
-#### GENERATE BASAL **NORMALIZED** DATASET
+## GENERATE BASAL **NORMALIZED** DATASET
 
 ``` r
 m <- vector(mode = "character", length = 0)
@@ -181,4 +181,110 @@ Extract only this two column
 ``` r
 data_Ctrl_Norm_Trim <- data_Ctrl_Norm[, 4:5]
 colnames(data_Ctrl_Norm_Trim) <- c("CTRL_Y_NORM", "CTRL_GT_NORM")
+```
+
+## GENERATE ACETIC ACID **NORMALIZED** DATASET
+
+Same as above
+
+``` r
+m <- vector(mode = "character", length = 0)
+file.names<-vector(mode = "character", length = 0)
+temp_df<-data.frame()
+data_AA_Norm <- data.frame()
+for(i in 1:24){
+  m <- paste0("aa", i, ".phenotypes.Normalized") 
+  file.names[i] <- dir("RAW_DATA/SOM_SCR_R002/", pattern = m, full.names = TRUE)
+  temp_df <- read.csv(file.names[i], na.strings = "NoGrowth")
+  data_AA_Norm <- rbind(data_AA_Norm, temp_df)
+}
+data_AA_Norm_Trim <- data_AA_Norm[, 4:5]
+colnames(data_AA_Norm_Trim) <- c("AA_Y_NORM", "AA_GT_NORM")
+```
+
+## COMBINE THE DATASETS TO OBTAIN FINAL DATAFRAME
+
+Trimmed datasets are combined to obtain the final data.frame. The
+combined data frame is labeled as data from ROUND2
+
+``` r
+R <- rep("2nd_round", 36864)
+Round_ID <- data.frame(R, stringsAsFactors = FALSE)
+whole_data_R2 <- cbind(Metadata_CRISPRi, 
+                       Round_ID, 
+                       data_Ctrl_Abs_Trim, 
+                       data_AA_Abs_Trim, 
+                       data_Ctrl_Norm_Trim, 
+                       data_AA_Norm_Trim)
+colnames(whole_data_R2)[12] <- "Round_ID"
+str(whole_data_R2)
+```
+
+    ## 'data.frame':    36864 obs. of  20 variables:
+    ##  $ SL_No             : num  1 2 3 4 5 6 7 8 9 10 ...
+    ##  $ gRNA_name         : chr  "FBP26-TRg-1" "FBP26-TRg-1" "HMI1-NRg-1" "HMI1-NRg-1" ...
+    ##  $ Seq               : chr  "GCTTATCATACATTTACATC" "GCTTATCATACATTTACATC" "AAAAATTCTGACACATCACA" "AAAAATTCTGACACATCACA" ...
+    ##  $ SOURCEPLATEID     : chr  "R2877.H.001" "R2877.H.001" "R2877.H.001" "R2877.H.001" ...
+    ##  $ SOURCEDENSITY     : chr  "384A" "384A" "384A" "384A" ...
+    ##  $ SOURCECOLONYCOLUMN: int  1 1 2 2 3 3 4 4 5 5 ...
+    ##  $ SOURCECOLONYROW   : chr  "A" "A" "A" "A" ...
+    ##  $ border            : logi  TRUE TRUE TRUE TRUE TRUE TRUE ...
+    ##  $ GENE              : chr  "FBP26" "FBP26" "HMI1" "HMI1" ...
+    ##  $ Control.gRNA      : int  0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ Location_1536     : chr  "A1" "A2" "A3" "A4" ...
+    ##  $ Round_ID          : chr  "2nd_round" "2nd_round" "2nd_round" "2nd_round" ...
+    ##  $ CTRL_Y_ABS        : num  8533790 6626182 5943280 5455589 5133404 ...
+    ##  $ CTRL_GT_ABS       : num  2.53 2.48 2.51 2.56 2.53 ...
+    ##  $ AA_Y_ABS          : num  2090439 2241914 1861277 1920070 1957912 ...
+    ##  $ AA_GT_ABS         : num  8.92 8.43 9.19 8.91 8.87 ...
+    ##  $ CTRL_Y_NORM       : num  0.755 0.39 0.233 0.484 0.396 ...
+    ##  $ CTRL_GT_NORM      : num  0.0505 0.0204 0.0389 -0.0173 -0.0327 ...
+    ##  $ AA_Y_NORM         : num  0.373 0.474 0.205 0.386 0.415 ...
+    ##  $ AA_GT_NORM        : num  0.019 -0.0614 0.0621 -0.2135 -0.219 ...
+
+## IMPORT RESULTS FROM ROUND1
+
+The results from Round1 is already compiled to a .csv file in
+COMPILED\_DATA folder **Results 1st Round** :
+20190903\_CRISPRi\_Screen\_aa\_1st\_round.csv
+
+Import the dataset and label as data from ROUND1
+
+``` r
+First_round <- read.csv("COMPILED_DATA/20190903_CRISPRi_Screen_aa_1st_round.csv", 
+                        na.strings = c("#N/A", "NoGrowth"), 
+                        stringsAsFactors = FALSE)
+R <- rep("1st_round", 36864)
+Round_ID <- data.frame(R, stringsAsFactors = FALSE)
+whole_data_R1 <- cbind(Metadata_CRISPRi, Round_ID, First_round[, 12:19])
+colnames(whole_data_R1)[12] <- "Round_ID"
+str(whole_data_R1)
+```
+
+    ## 'data.frame':    36864 obs. of  20 variables:
+    ##  $ SL_No             : num  1 2 3 4 5 6 7 8 9 10 ...
+    ##  $ gRNA_name         : chr  "FBP26-TRg-1" "FBP26-TRg-1" "HMI1-NRg-1" "HMI1-NRg-1" ...
+    ##  $ Seq               : chr  "GCTTATCATACATTTACATC" "GCTTATCATACATTTACATC" "AAAAATTCTGACACATCACA" "AAAAATTCTGACACATCACA" ...
+    ##  $ SOURCEPLATEID     : chr  "R2877.H.001" "R2877.H.001" "R2877.H.001" "R2877.H.001" ...
+    ##  $ SOURCEDENSITY     : chr  "384A" "384A" "384A" "384A" ...
+    ##  $ SOURCECOLONYCOLUMN: int  1 1 2 2 3 3 4 4 5 5 ...
+    ##  $ SOURCECOLONYROW   : chr  "A" "A" "A" "A" ...
+    ##  $ border            : logi  TRUE TRUE TRUE TRUE TRUE TRUE ...
+    ##  $ GENE              : chr  "FBP26" "FBP26" "HMI1" "HMI1" ...
+    ##  $ Control.gRNA      : int  0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ Location_1536     : chr  "A1" "A2" "A3" "A4" ...
+    ##  $ Round_ID          : chr  "1st_round" "1st_round" "1st_round" "1st_round" ...
+    ##  $ CTRL_Y_ABS        : num  7046465 5380541 4841666 4517281 4209174 ...
+    ##  $ CTRL_GT_ABS       : num  3.15 3.64 3.18 3.04 3.13 ...
+    ##  $ AA_Y_ABS          : num  833657 844666 708042 734725 717147 ...
+    ##  $ AA_GT_ABS         : num  13.1 13.6 14.5 14.7 13.6 ...
+    ##  $ CTRL_Y_NORM       : num  0.899 0.51 0.358 0.565 0.463 ...
+    ##  $ CTRL_GT_NORM      : num  -0.10076 0.10855 -0.08699 0.00504 0.0462 ...
+    ##  $ AA_Y_NORM         : num  -0.362 -0.343 -0.598 -0.642 -0.677 ...
+    ##  $ AA_GT_NORM        : num  0.273 0.331 0.423 0.425 0.313 ...
+
+## COMBINE THE DATASETS of ROUND 1 AND 2
+
+``` r
+whole_data_CRISPRi_aa <- rbind(whole_data_R1, whole_data_R2)
 ```

@@ -9,7 +9,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# IMPORT SCAN-O-MATIC RAW DATA
+# 1. IMPORT SCAN-O-MATIC RAW DATA
 
 The phenotypic data generated in scan-o-matic screening in .csv format. 
 We extract both the absolute and the normalized phenotypes.
@@ -38,19 +38,19 @@ AND
 Plate 1 Normalized data in acetic acid (aa) stress have the string  
 *aa1.phenotypes.Normalized*
 
-## PURPOSE
+## 1.1 PURPOSE
 At the end of this data import session, a single data.frame will be generated with the data of 24 plates. The whole dataset will be labeled with the strains attributes using the metadata key file (provided in the COMPILED_DATA folder). The data import below is shown for only Round2 dataset. Round1 can be generated modifying the folder location
 
 **METADATA KEY FILE** : library_keyfile1536.csv
 
-#### IMPORTING THE METADATA FILE  
+## 1.2 IMPORTING THE METADATA FILE  
 
 ```{r}
 Metadata_CRISPRi <- read.csv("COMPILED_DATA/library_keyfile1536.csv", na.strings = "#N/A", stringsAsFactors = FALSE)
 str(Metadata_CRISPRi)
 ```
 
-#### GENERATE BASAL **ABSOLUTE** DATASET
+## 1.3 GENERATE BASAL **ABSOLUTE** DATASET
 
 ```{r}
 m <- vector(mode = "character", length = 0)
@@ -80,7 +80,7 @@ colnames(data_Ctrl_Abs_Trim) <- c("CTRL_Y_ABS", "CTRL_GT_ABS")
 str(data_Ctrl_Abs_Trim)
 ```
 
-#### GENERATE ACETIC ACID **ABSOLUTE** DATASET
+## 1.4 GENERATE ACETIC ACID **ABSOLUTE** DATASET
 
 Following the same strategy as above
 
@@ -99,7 +99,7 @@ data_AA_Abs_Trim <- data_AA_Abs[, 14:15]
 colnames(data_AA_Abs_Trim) <- c("AA_Y_ABS", "AA_GT_ABS")
 ```
 
-#### GENERATE BASAL **NORMALIZED** DATASET
+## 1.5 GENERATE BASAL **NORMALIZED** DATASET
 
 ```{r}
 m <- vector(mode = "character", length = 0)
@@ -127,7 +127,64 @@ data_Ctrl_Norm_Trim <- data_Ctrl_Norm[, 4:5]
 colnames(data_Ctrl_Norm_Trim) <- c("CTRL_Y_NORM", "CTRL_GT_NORM")
 ```
 
-#### GENERATE ACETIC ACID **NORMALIZED** DATASET
+## 1.6 GENERATE ACETIC ACID **NORMALIZED** DATASET
 
+Same as above 
 
+```{r}
+m <- vector(mode = "character", length = 0)
+file.names<-vector(mode = "character", length = 0)
+temp_df<-data.frame()
+data_AA_Norm <- data.frame()
+for(i in 1:24){
+  m <- paste0("aa", i, ".phenotypes.Normalized") 
+  file.names[i] <- dir("RAW_DATA/SOM_SCR_R002/", pattern = m, full.names = TRUE)
+  temp_df <- read.csv(file.names[i], na.strings = "NoGrowth")
+  data_AA_Norm <- rbind(data_AA_Norm, temp_df)
+}
+data_AA_Norm_Trim <- data_AA_Norm[, 4:5]
+colnames(data_AA_Norm_Trim) <- c("AA_Y_NORM", "AA_GT_NORM")
+```
+
+## 1.7 COMBINE THE DATASETS TO OBTAIN FINAL DATAFRAME
+
+Trimmed datasets are combined to obtain the final data.frame.
+The combined data frame is labeled as data from ROUND2
+
+```{r}
+R <- rep("2nd_round", 36864)
+Round_ID <- data.frame(R, stringsAsFactors = FALSE)
+whole_data_R2 <- cbind(Metadata_CRISPRi, 
+                       Round_ID, 
+                       data_Ctrl_Abs_Trim, 
+                       data_AA_Abs_Trim, 
+                       data_Ctrl_Norm_Trim, 
+                       data_AA_Norm_Trim)
+colnames(whole_data_R2)[12] <- "Round_ID"
+str(whole_data_R2)
+```
+
+## 1.8 IMPORT RESULTS FROM ROUND1
+
+The results from Round1 is already compiled to a .csv file in COMPILED_DATA folder
+**Results 1st Round** : 20190903_CRISPRi_Screen_aa_1st_round.csv
+
+Import the dataset and label as data from ROUND1
+
+```{r}
+First_round <- read.csv("COMPILED_DATA/20190903_CRISPRi_Screen_aa_1st_round.csv", 
+                        na.strings = c("#N/A", "NoGrowth"), 
+                        stringsAsFactors = FALSE)
+R <- rep("1st_round", 36864)
+Round_ID <- data.frame(R, stringsAsFactors = FALSE)
+whole_data_R1 <- cbind(Metadata_CRISPRi, Round_ID, First_round[, 12:19])
+colnames(whole_data_R1)[12] <- "Round_ID"
+str(whole_data_R1)
+```
+
+## 1.9 COMBINE THE DATASETS of ROUND 1 AND 2
+
+```{r}
+whole_data_CRISPRi_aa <- rbind(whole_data_R1, whole_data_R2)
+```
 
