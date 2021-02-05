@@ -400,10 +400,30 @@ for(i in 1:n){
 }
 ```
 
+### ASSIGN COLUMN NAMES 
+
+Column names are already stored in a text times available in the **COMPILED_DATA** folder. Then store the data.frame under a new name.  
+```{r}
+column_names <- read.table("COMPILED_DATA/Column_names.txt", header = FALSE, sep = "\t", as.is = TRUE)
+colnames(test2) <- column_names$V1
+Analysis_CRISPRi_aa_Complete <- test2
+str(Analysis_CRISPRi_aa_Complete)
+```
+
+## PERFORM STATISTICAL ANALYSIS
+
+Multiple statistical method was applied to identify the best fit statistical model for this dataset. We start with the complete dataset and give it a new name to avoid distorting the original dataset.
+
+```{r}
+Analysis_Final <- Analysis_CRISPRi_aa_Complete
+```
 
 
+### METHOD 1
 
+In this method, we estimate the Mean of the LPI GT of Round 1 and Round 2 separately for each strain (Excluding the missing values). When one of the three replicates of a round returned missing value (i.e. NA), then the mean LPI GT for that round is calculated by taking average of the other two replicates. We hypothesized that the difference between the mean phenotypic performance of a specific CRISPRi strain (StrainX) in the two independent experimental rounds (n=2) to the mean phenotypic performance of all the CRISPRi strains that falls within the interquartile range (IQR) of the complete dataset would be zero, and any difference within the IQR to be just by chance. 
 
+**Null Hypothesis** : µ(µ~LPI_GT_StrainX_Round1~, µ~LPI_GT_StrainX_Round2~)- µ(InterquartileRange_LPI_GT) = 0
 
 
 

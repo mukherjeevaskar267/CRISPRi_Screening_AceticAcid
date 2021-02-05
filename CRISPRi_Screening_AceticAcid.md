@@ -32,7 +32,13 @@ Vaskar Mukherjee
         COLUMNS](#extract-only-the-batch-corrected-columns)
       - [CONSTRUCT A NEW DATA
         STRUCTURE](#construct-a-new-data-structure)
-          - [REMOVE ROWS](#remove-rows)
+          - [REMOVE ROWS WITH SPATIAL CONTROL STRAIN
+            DATA](#remove-rows-with-spatial-control-strain-data)
+          - [CREATE A TABLE OF UNIQUE
+            gRNA](#create-a-table-of-unique-grna)
+          - [ARRANGE THE DATA IN THE DESIRED
+            FORMAT](#arrange-the-data-in-the-desired-format)
+          - [ASSIGN COLUMN NAMES](#assign-column-names)
 
 # IMPORT SCAN-O-MATIC RAW DATA
 
@@ -525,8 +531,92 @@ str(whole_data_CRISPRi_aa_2)
 ## CONSTRUCT A NEW DATA STRUCTURE
 
 Construct a new data structure where data from each strain (have a
-unique sgRNA) is in a separate row and the replicates from first and
+unique guide-RNA) is in a separate row and the replicates from first and
 second round are side by side. Add also the mean, median and standard
 deviation statistics for each phenotype
 
-### REMOVE ROWS
+### REMOVE ROWS WITH SPATIAL CONTROL STRAIN DATA
+
+``` r
+Data_CRISPRi_aa <- subset(whole_data_CRISPRi_aa_2, whole_data_CRISPRi_aa_2$gRNA_name!="SP_Ctrl_CC23")
+```
+
+### CREATE A TABLE OF UNIQUE gRNA
+
+``` r
+df_unique_sgRNA <- data.frame(table(Data_CRISPRi_aa$gRNA_name))
+```
+
+### ARRANGE THE DATA IN THE DESIRED FORMAT
+
+``` r
+R1<-vector(mode = "integer", length = 0)
+R2<-vector(mode = "integer", length = 0)
+test2<-data.frame()
+n<-nrow(df_unique_sgRNA)
+for(i in 1:n){
+  R1 <- which(Data_CRISPRi_aa$gRNA_name==df_unique_sgRNA$Var1[i] & Data_CRISPRi_aa$Round_ID=="1st_round")
+  R2 <- which(Data_CRISPRi_aa$gRNA_name==df_unique_sgRNA$Var1[i] & Data_CRISPRi_aa$Round_ID=="2nd_round")
+  test1 <- Data_CRISPRi_aa[c(R1, R2), ]
+  test2[i, c(1:8)]<-test1[1, c(2:4, 6:7, 9:11)]
+  test2[i, c(9:14)] <- test1$CTRL_GT_NORM
+  test2[i, 15] <- mean(test1$CTRL_GT_NORM[1:3])
+  test2[i, 16] <- mean(test1$CTRL_GT_NORM[4:6])
+  test2[i, 17] <- sd(test1$CTRL_GT_NORM[1:3])
+  test2[i, 18] <- sd(test1$CTRL_GT_NORM[4:6])
+  test2[i, 19] <- mean(test1$CTRL_GT_NORM[1:6])
+  test2[i, 20] <- median(test1$CTRL_GT_NORM[1:6])
+  test2[i, 21] <- sd(test1$CTRL_GT_NORM[1:6])
+  test2[i, c(22:27)] <- test1$AA_GT_NORM
+  test2[i, 28] <- mean(test1$AA_GT_NORM[1:3])
+  test2[i, 29] <- mean(test1$AA_GT_NORM[4:6])
+  test2[i, 30] <- sd(test1$AA_GT_NORM[1:3])
+  test2[i, 31] <- sd(test1$AA_GT_NORM[4:6])
+  test2[i, 32] <- mean(test1$AA_GT_NORM[1:6])
+  test2[i, 33] <- median(test1$AA_GT_NORM[1:6])
+  test2[i, 34] <- sd(test1$AA_GT_NORM[1:6])
+  test2[i, c(35:40)] <- test1$LPI_GT
+  test2[i, 41] <- mean(test1$LPI_GT[1:3])
+  test2[i, 42] <- mean(test1$LPI_GT[4:6])
+  test2[i, 43] <- sd(test1$LPI_GT[1:3])
+  test2[i, 44] <- sd(test1$LPI_GT[4:6])
+  test2[i, 45] <- mean(test1$LPI_GT[1:6])
+  test2[i, 46] <- median(test1$LPI_GT[1:6])
+  test2[i, 47] <- sd(test1$LPI_GT[1:6])
+  test2[i, c(48:53)] <- test1$CTRL_Y_NORM
+  test2[i, 54] <- mean(test1$CTRL_Y_NORM[1:3])
+  test2[i, 55] <- mean(test1$CTRL_Y_NORM[4:6])
+  test2[i, 56] <- sd(test1$CTRL_Y_NORM[1:3])
+  test2[i, 57] <- sd(test1$CTRL_Y_NORM[4:6])
+  test2[i, 58] <- mean(test1$CTRL_Y_NORM[1:6])
+  test2[i, 59] <- median(test1$CTRL_Y_NORM[1:6])
+  test2[i, 60] <- sd(test1$CTRL_Y_NORM[1:6])
+  test2[i, c(61:66)] <- test1$AA_Y_NORM
+  test2[i, 67] <- mean(test1$AA_Y_NORM[1:3])
+  test2[i, 68] <- mean(test1$AA_Y_NORM[4:6])
+  test2[i, 69] <- sd(test1$AA_Y_NORM[1:3])
+  test2[i, 70] <- sd(test1$AA_Y_NORM[4:6])
+  test2[i, 71] <- mean(test1$AA_Y_NORM[1:6])
+  test2[i, 72] <- median(test1$AA_Y_NORM[1:6])
+  test2[i, 73] <- sd(test1$AA_Y_NORM[1:6])
+  test2[i, c(74:79)] <- test1$LPI_Y
+  test2[i, 80] <- mean(test1$LPI_Y[1:3])
+  test2[i, 81] <- mean(test1$LPI_Y[4:6])
+  test2[i, 82] <- sd(test1$LPI_Y[1:3])
+  test2[i, 83] <- sd(test1$LPI_Y[4:6])
+  test2[i, 84] <- mean(test1$LPI_Y[1:6])
+  test2[i, 85] <- median(test1$LPI_Y[1:6])
+  test2[i, 86] <- sd(test1$LPI_Y[1:6])
+}
+```
+
+### ASSIGN COLUMN NAMES
+
+Column names are already stored in a text times available in the
+**COMPILED\_DATA** folder. Then store the data.frame under a new name.
+
+``` r
+column_names <- read.table("COMPILED_DATA/Column_names.txt", header = FALSE, sep = "\t", as.is = TRUE)
+colnames(test2) <- column_names$V1
+Analysis_CRISPRi_aa_Complete <- test2
+```
