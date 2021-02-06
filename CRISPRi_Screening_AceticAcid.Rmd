@@ -197,9 +197,9 @@ In this study most of the downstream analysis was performed using the phenotype 
 
 ## ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES
 
-LPI of strain is the difference of its normalized Generation_Time(GT) / Yield(Y) (LSC, see [IMPORT SCAN-O-MATIC RAW DATA]) on acetic acid stress plate to the basal condition. It gives a relative estimate of how a strain performed under acetic acid stress relative to the basal condition.   
+LPI of strain is the difference of its normalized Generation_Time(GT) / Yield(Y) (LSC, see [IMPORT SCAN-O-MATIC RAW DATA]) on acetic acid stress plate to the basal condition. It gives a **RELATIVE** estimate of how a strain performed under acetic acid stress relative to the basal condition.   
 
-i.e. LPI_GT = LSC_GT_Acetic_Acid - LSC_GT_Basal 
+The **RELATIVE GENERATION TIME** i.e. LPI_GT = LSC_GT_Acetic_Acid - LSC_GT_Basal 
 
 ```{r}
 whole_data_CRISPRi_aa[, 21] <- whole_data_CRISPRi_aa[, 19]-whole_data_CRISPRi_aa[, 17]
@@ -421,10 +421,92 @@ Analysis_Final <- Analysis_CRISPRi_aa_Complete
 
 ### METHOD 1
 
-In this method, we estimate the Mean of the LPI GT of Round 1 and Round 2 separately for each strain (Excluding the missing values). When one of the three replicates of a round returned missing value (i.e. NA), then the mean LPI GT for that round is calculated by taking average of the other two replicates. We hypothesized that the difference between the mean phenotypic performance of a specific CRISPRi strain (StrainX) in the two independent experimental rounds (n=2) to the mean phenotypic performance of all the CRISPRi strains that falls within the interquartile range (IQR) of the complete dataset would be zero, and any difference within the IQR to be just by chance. 
+For **METHOD 1**, We hypothesized that the difference between the mean phenotypic performance of a specific CRISPRi strain (StrainX) in the two independent experimental rounds (n=2) to the mean phenotypic performance of all the CRISPRi strains that falls within the interquartile range (IQR) of the complete dataset would be zero, and any difference within the IQR to be just by chance. 
 
 **Null Hypothesis** : µ(µ~LPI_GT_StrainX_Round1~, µ~LPI_GT_StrainX_Round2~)- µ(InterquartileRange_LPI_GT) = 0
 
+#### RECALCULATION OF SOME PHENOTYPIC PARAMETERS
 
+In this method, we estimate the Mean / standard deviation (SD) of the LPI GT of Round 1 and Round 2 separately for each strain. When one/two of the three replicates of a strain in a round returned missing value (i.e. NA), then the mean / SD of LPI GT for that round is calculated by taking average of the non NA replicates. Therefore, excluding the missing values the mean and SD statistics were recalculated. We implemented a if else decision tree for this  
 
+* The mean and SD of Normalized generation time (**LSC GT mean**) at **Basal condition** re-calculation
+
+```{r}
+for(i in 1:nrow(Analysis_Final)){
+  x1 <- as.numeric(Analysis_Final[i, 9:11][which(!is.na(Analysis_Final[i, 9:11]))])
+  x2 <- as.numeric(Analysis_Final[i, 12:14][which(!is.na(Analysis_Final[i, 12:14]))])
+  if(length(x1)==0){
+    Analysis_Final$CTRL_GT_RND1_MEAN[i] <- NA
+  } else{
+    Analysis_Final$CTRL_GT_RND1_MEAN[i] <- as.numeric(mean(x1))
+  }
+  if(length(x2)==0){
+    Analysis_Final$CTRL_GT_RND2_MEAN[i] <- NA
+  } else{
+    Analysis_Final$CTRL_GT_RND2_MEAN[i] <- as.numeric(mean(x2))
+  }
+  if(sum(is.na(c(Analysis_Final$CTRL_GT_RND1_MEAN[i], Analysis_Final$CTRL_GT_RND2_MEAN[i])))==0){
+    Analysis_Final$CTRL_GT_RND1_2_MEAN[i] <- as.numeric(mean(c(Analysis_Final$CTRL_GT_RND1_MEAN[i], Analysis_Final$CTRL_GT_RND2_MEAN[i])))
+    Analysis_Final[i, 87] <- as.numeric(sd(c(Analysis_Final$CTRL_GT_RND1_MEAN[i], Analysis_Final$CTRL_GT_RND2_MEAN[i])))
+  } else{
+    Analysis_Final$CTRL_GT_RND1_2_MEAN[i] <- NA
+    Analysis_Final[i, 87] <- NA
+  }
+}
+colnames(Analysis_Final)[87] <- "CTRL_GT_MEAN_RND1_2_SD"
+```
+
+* The mean and SD of Normalized generation time (**LSC GT mean**) at **150mM acetic acid** re-calculation
+
+```{r}
+for(i in 1:nrow(Analysis_Final)){
+  x1 <- as.numeric(Analysis_Final[i, 22:24][which(!is.na(Analysis_Final[i, 22:24]))])
+  x2 <- as.numeric(Analysis_Final[i, 25:27][which(!is.na(Analysis_Final[i, 25:27]))])
+  if(length(x1)==0){
+    Analysis_Final$AA_GT_RND1_MEAN[i] <- NA
+  } else{
+    Analysis_Final$AA_GT_RND1_MEAN[i] <- as.numeric(mean(x1))
+  }
+  if(length(x2)==0){
+    Analysis_Final$AA_GT_RND2_MEAN[i] <- NA
+  } else{
+    Analysis_Final$AA_GT_RND2_MEAN[i] <- as.numeric(mean(x2))
+  }
+  if(sum(is.na(c(Analysis_Final$AA_GT_RND1_MEAN[i], Analysis_Final$AA_GT_RND2_MEAN[i])))==0){
+    Analysis_Final$AA_GT_RND1_2_MEAN[i] <- as.numeric(mean(c(Analysis_Final$AA_GT_RND1_MEAN[i], Analysis_Final$AA_GT_RND2_MEAN[i])))
+    Analysis_Final[i, 88] <- as.numeric(sd(c(Analysis_Final$AA_GT_RND1_MEAN[i], Analysis_Final$AA_GT_RND2_MEAN[i])))
+  } else{
+    Analysis_Final$AA_GT_RND1_2_MEAN[i] <- NA
+    Analysis_Final[i, 88] <- NA
+  }
+}
+colnames(Analysis_Final)[88] <- "AA_GT_MEAN_RND1_2_SD"
+```
+
+* The mean and SD of **RELATIVE** generation time (**LPI GT mean**) at **150mM acetic acid** re-calculation
+
+```{r}
+for(i in 1:nrow(Analysis_Final)){
+  x1 <- as.numeric(Analysis_Final[i, 35:37][which(!is.na(Analysis_Final[i, 35:37]))])
+  x2 <- as.numeric(Analysis_Final[i, 38:40][which(!is.na(Analysis_Final[i, 38:40]))])
+  if(length(x1)==0){
+    Analysis_Final$LPI_GT_RND1_MEAN[i] <- NA
+  } else{
+    Analysis_Final$LPI_GT_RND1_MEAN[i] <- as.numeric(mean(x1))
+  }
+  if(length(x2)==0){
+    Analysis_Final$LPI_GT_RND2_MEAN[i] <- NA
+  } else{
+    Analysis_Final$LPI_GT_RND2_MEAN[i] <- as.numeric(mean(x2))
+  }
+  if(sum(is.na(c(Analysis_Final$LPI_GT_RND1_MEAN[i], Analysis_Final$LPI_GT_RND2_MEAN[i])))==0){
+    Analysis_Final$LPI_GT_RND1_2_MEAN[i] <- as.numeric(mean(c(Analysis_Final$LPI_GT_RND1_MEAN[i], Analysis_Final$LPI_GT_RND2_MEAN[i])))
+    Analysis_Final[i, 89] <- as.numeric(sd(c(Analysis_Final$LPI_GT_RND1_MEAN[i], Analysis_Final$LPI_GT_RND2_MEAN[i])))
+  } else{
+    Analysis_Final$LPI_GT_RND1_2_MEAN[i] <- NA
+    Analysis_Final[i, 89] <- NA
+  }
+}
+colnames(Analysis_Final)[89] <- "LPI_GT_MEAN_RND1_2_SD"
+```
 
