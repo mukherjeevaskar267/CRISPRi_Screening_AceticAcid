@@ -3,7 +3,7 @@ title: "CRISPRi PHENOMICS DATA ANALYSIS"
 author: "Vaskar Mukherjee"
 date: "2/3/2021"
 output: 
-  github_document:
+  html_document:
     toc: true
     toc_depth: 4
 ---
@@ -518,7 +518,7 @@ colnames(Analysis_Final)[89] <- "LPI_GT_MEAN_RND1_2_SD"
 
 BOX PLOT - MEAN RELATIVE GENERATION TIME (LPI GT)
 
-```{r echo=FALSE, fig.cap="BOX PLOT - MEAN RELATIVE GENERATION TIME (LPI GT)", fig.width=2, fig.height=4}
+```{r fig1, echo=FALSE, fig.cap="Figure 1: Boxplot of mean relative generation time (LPI GT)", fig.width=2, fig.height=4}
 box_stat_LPI_GT_R1_2_mean <- boxplot(Analysis_Final$LPI_GT_RND1_2_MEAN, cex=0.3)
 ```
 
@@ -578,7 +578,7 @@ length(Analysis_Final$P.adjusted_M1[which(Analysis_Final$P.adjusted_M1<=0.1)])
 
 P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS**
 
-```{r echo=FALSE, fig.cap="P-VALUE DIAGNOSTICS METHOD1", fig.width=8, fig.height=8}
+```{r fig2, echo=FALSE, fig.cap="Figure 2: P-value diagnostics", fig.width=8, fig.height=8}
 par(mfrow=c(2,2))
 hist(Analysis_Final$P_value_M1,
      breaks = 20,
