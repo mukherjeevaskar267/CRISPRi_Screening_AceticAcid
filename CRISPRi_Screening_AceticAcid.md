@@ -4,7 +4,7 @@ Vaskar Mukherjee
 2/3/2021
 
   - [IMPORT SCAN-O-MATIC RAW DATA](#import-scan-o-matic-raw-data)
-      - [PURPOSE](#purpose)
+      - [PURPOSE1](#purpose1)
       - [IMPORTING THE METADATA FILE](#importing-the-metadata-file)
       - [GENERATE BASAL **ABSOLUTE**
         DATASET](#generate-basal-absolute-dataset)
@@ -20,6 +20,7 @@ Vaskar Mukherjee
       - [COMBINE THE DATASETS of ROUND 1 AND
         2](#combine-the-datasets-of-round-1-and-2)
   - [SCAN-O-MATIC PHENOMICS ANALYSIS](#scan-o-matic-phenomics-analysis)
+      - [PURPOSE2](#purpose2)
       - [ESTIMATE THE LOG PHENOTYPIC INDEX (LPI)
         VALUES](#estimate-the-log-phenotypic-index-lpi-values)
       - [PERFORM PLATE-WISE BATCH
@@ -43,6 +44,14 @@ Vaskar Mukherjee
           - [METHOD 1](#method-1)
               - [RECALCULATION OF SOME PHENOTYPIC
                 PARAMETERS](#recalculation-of-some-phenotypic-parameters)
+              - [EXTRACT ALL LPI GT MEAN DATA POINTS WITHIN
+                INTER-QUARTILE-RANGE
+                (IQR)](#extract-all-lpi-gt-mean-data-points-within-inter-quartile-range-iqr)
+              - [ESTIMATE P-VALUE](#estimate-p-value)
+              - [FALSE DISCOVERY RATE ADJUSTMENT OF
+                P-VALUE](#false-discovery-rate-adjustment-of-p-value)
+              - [P-VALUE DISGNOSTICS FOR
+                METHOD1](#p-value-disgnostics-for-method1)
 
 # IMPORT SCAN-O-MATIC RAW DATA
 
@@ -82,7 +91,7 @@ AND
 Plate 1 Normalized data in acetic acid (aa) stress have the string  
 *aa1.phenotypes.Normalized*
 
-## PURPOSE
+## PURPOSE1
 
 At the end of this data import session, a single data.frame will be
 generated with the data of 24 plates. The whole dataset will be labeled
@@ -334,6 +343,11 @@ whole_data_CRISPRi_aa <- rbind(whole_data_R1, whole_data_R2)
 
 In this study most of the downstream analysis was performed using the
 phenotype Generation\_time(GT)
+
+## PURPOSE2
+
+Downstream data processing and statistical analysis of SCAN-O-MATIC raw
+output
 
 ## ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES
 
@@ -837,3 +851,95 @@ for(i in 1:nrow(Analysis_Final)){
 }
 colnames(Analysis_Final)[89] <- "LPI_GT_MEAN_RND1_2_SD"
 ```
+
+#### EXTRACT ALL LPI GT MEAN DATA POINTS WITHIN INTER-QUARTILE-RANGE (IQR)
+
+BOX PLOT - MEAN RELATIVE GENERATION TIME (LPI GT)
+
+![BOX PLOT - MEAN RELATIVE GENERATION TIME (LPI
+GT)](CRISPRi_Screening_AceticAcid_files/figure-gfm/unnamed-chunk-25-1.png)
+
+Display Box-plot statistics
+
+``` r
+box_stat_LPI_GT_R1_2_mean$stats
+```
+
+    ##             [,1]
+    ## [1,] -0.16933911
+    ## [2,] -0.02428792
+    ## [3,]  0.02084505
+    ## [4,]  0.07255828
+    ## [5,]  0.21771505
+
+  - 25th Percentile = -0.02428792
+  - 75th Percentile = 0.07255828
+
+Therefore, extraction of the data points within IQR
+
+``` r
+Intermediate_50 <- Analysis_Final$LPI_GT_RND1_2_MEAN[which(Analysis_Final$LPI_GT_RND1_2_MEAN>=-0.02428792
+                                                           &Analysis_Final$LPI_GT_RND1_2_MEAN<=0.07255828)]
+```
+
+#### ESTIMATE P-VALUE
+
+P-value is estimated by Welch two sample two-sided t-test (an adaptation
+of Student’s t-test)
+
+``` r
+for(i in 1:nrow(Analysis_Final)){
+  if(sum(is.na(c(Analysis_Final$LPI_GT_RND1_MEAN[i], Analysis_Final$LPI_GT_RND2_MEAN[i])))==0){
+    P_value <- t.test(Intermediate_50, c(Analysis_Final$LPI_GT_RND1_MEAN[i], Analysis_Final$LPI_GT_RND2_MEAN[i]))
+    Analysis_Final[i, 90] <- P_value$p.value
+  } else{
+    Analysis_Final[i, 90] <- NA
+  }
+}
+colnames(Analysis_Final)[90] <- "P_value_M1"
+```
+
+#### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUE
+
+P-value adjustment by **BENJAMINI-HOCHBERG False Discovery Rate (FDR)
+method**
+
+``` r
+Analysis_Final[which(!is.na(Analysis_Final$P_value_M1)), 91] <- p.adjust(Analysis_Final$P_value_M1[which(!is.na(Analysis_Final$P_value_M1))], 
+                                                                      method = "BH", 
+                                                                      n = length(Analysis_Final$P_value_M1[which(!is.na(Analysis_Final$P_value_M1))]))
+colnames(Analysis_Final)[91] <- "P.adjusted_M1"
+```
+
+#### P-VALUE DISGNOSTICS FOR METHOD1
+
+NUMBER OF SIGNIFICANT STRAINS
+
+``` r
+length(Analysis_Final$P_value_M1[which(Analysis_Final$P_value_M1<=0.05)])
+```
+
+    ## [1] 434
+
+``` r
+length(Analysis_Final$P.adjusted_M1[which(Analysis_Final$P.adjusted_M1<=0.05)])
+```
+
+    ## [1] 66
+
+``` r
+length(Analysis_Final$P_value_M1[which(Analysis_Final$P_value_M1<=0.1)])
+```
+
+    ## [1] 842
+
+``` r
+length(Analysis_Final$P.adjusted_M1[which(Analysis_Final$P.adjusted_M1<=0.1)])
+```
+
+    ## [1] 71
+
+P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS**
+
+![P-VALUE DIAGNOSTICS
+METHOD1](CRISPRi_Screening_AceticAcid_files/figure-gfm/unnamed-chunk-31-1.png)

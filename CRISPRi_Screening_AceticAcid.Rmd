@@ -41,7 +41,7 @@ AND
 Plate 1 Normalized data in acetic acid (aa) stress have the string  
 *aa1.phenotypes.Normalized*
 
-## PURPOSE
+## PURPOSE 1
 At the end of this data import session, a single data.frame will be generated with the data of 24 plates. The whole dataset will be labeled with the strains attributes using the metadata key file (provided in the COMPILED_DATA folder). The data import below is shown for only Round2 dataset. Round1 can be generated modifying the folder location
 
 **METADATA KEY FILE** : library_keyfile1536.csv
@@ -194,6 +194,10 @@ whole_data_CRISPRi_aa <- rbind(whole_data_R1, whole_data_R2)
 # SCAN-O-MATIC PHENOMICS ANALYSIS 
 
 In this study most of the downstream analysis was performed using the phenotype Generation_time(GT)
+
+## PURPOSE 2
+
+In this session, downstream data processing and statistical analysis of SCAN-O-MATIC raw output will be performed
 
 ## ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES
 
@@ -421,7 +425,7 @@ Analysis_Final <- Analysis_CRISPRi_aa_Complete
 
 ### METHOD 1
 
-For **METHOD 1**, We hypothesized that the difference between the mean phenotypic performance of a specific CRISPRi strain (StrainX) in the two independent experimental rounds (n=2) to the mean phenotypic performance of all the CRISPRi strains that falls within the interquartile range (IQR) of the complete dataset would be zero, and any difference within the IQR to be just by chance. 
+For **METHOD 1**, We hypothesized that the difference between the mean(µ) phenotypic performance of a specific CRISPRi strain (StrainX) in the two independent experimental rounds (n=2) to the mean phenotypic performance of all the CRISPRi strains that falls within the interquartile range (IQR) of the complete dataset would be zero, and any difference within the IQR to be just by chance. 
 
 **Null Hypothesis** : µ(µ~LPI_GT_StrainX_Round1~, µ~LPI_GT_StrainX_Round2~)- µ(InterquartileRange_LPI_GT) = 0
 
@@ -509,4 +513,105 @@ for(i in 1:nrow(Analysis_Final)){
 }
 colnames(Analysis_Final)[89] <- "LPI_GT_MEAN_RND1_2_SD"
 ```
+
+#### EXTRACT ALL LPI GT MEAN DATA POINTS WITHIN INTER-QUARTILE-RANGE (IQR)
+
+BOX PLOT - MEAN RELATIVE GENERATION TIME (LPI GT)
+
+```{r echo=FALSE, fig.cap="BOX PLOT - MEAN RELATIVE GENERATION TIME (LPI GT)", fig.width=2, fig.height=4}
+box_stat_LPI_GT_R1_2_mean <- boxplot(Analysis_Final$LPI_GT_RND1_2_MEAN, cex=0.3)
+```
+
+Display Box-plot statistics
+
+```{r}
+box_stat_LPI_GT_R1_2_mean$stats
+```
+
+* 25th Percentile = -0.02428792
+* 75th Percentile = 0.07255828
+
+Therefore, extraction of the data points within IQR
+
+```{r}
+Intermediate_50 <- Analysis_Final$LPI_GT_RND1_2_MEAN[which(Analysis_Final$LPI_GT_RND1_2_MEAN>=-0.02428792
+                                                           &Analysis_Final$LPI_GT_RND1_2_MEAN<=0.07255828)]
+```
+
+#### ESTIMATE P-VALUE
+
+P-value is estimated by Welch two sample two-sided t-test (an adaptation of Student's t-test)
+
+```{r}
+for(i in 1:nrow(Analysis_Final)){
+  if(sum(is.na(c(Analysis_Final$LPI_GT_RND1_MEAN[i], Analysis_Final$LPI_GT_RND2_MEAN[i])))==0){
+    P_value <- t.test(Intermediate_50, c(Analysis_Final$LPI_GT_RND1_MEAN[i], Analysis_Final$LPI_GT_RND2_MEAN[i]))
+    Analysis_Final[i, 90] <- P_value$p.value
+  } else{
+    Analysis_Final[i, 90] <- NA
+  }
+}
+colnames(Analysis_Final)[90] <- "P_value_M1"
+```
+
+#### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUE 
+
+P-value adjustment by **BENJAMINI-HOCHBERG False Discovery Rate (FDR) method**
+
+```{r}
+Analysis_Final[which(!is.na(Analysis_Final$P_value_M1)), 91] <- p.adjust(Analysis_Final$P_value_M1[which(!is.na(Analysis_Final$P_value_M1))], 
+                                                                      method = "BH", 
+                                                                      n = length(Analysis_Final$P_value_M1[which(!is.na(Analysis_Final$P_value_M1))]))
+colnames(Analysis_Final)[91] <- "P.adjusted_M1"
+```
+
+#### P-VALUE DISGNOSTICS FOR METHOD1
+
+NUMBER OF SIGNIFICANT STRAINS
+
+```{r}
+length(Analysis_Final$P_value_M1[which(Analysis_Final$P_value_M1<=0.05)])
+length(Analysis_Final$P.adjusted_M1[which(Analysis_Final$P.adjusted_M1<=0.05)])
+length(Analysis_Final$P_value_M1[which(Analysis_Final$P_value_M1<=0.1)])
+length(Analysis_Final$P.adjusted_M1[which(Analysis_Final$P.adjusted_M1<=0.1)])
+```
+
+P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS**
+
+```{r echo=FALSE, fig.cap="P-VALUE DIAGNOSTICS METHOD1", fig.width=8, fig.height=8}
+par(mfrow=c(2,2))
+hist(Analysis_Final$P_value_M1,
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-value of all strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 1000))
+hist(Analysis_Final$P_value_M1[which(Analysis_Final$Control.gRNA==1)],
+     breaks = 10,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-value of control strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 5))
+hist(Analysis_Final$P.adjusted_M1,
+     breaks = 20,
+     xlab = "P.adj", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of all strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 1000))
+hist(Analysis_Final$P.adjusted_M1[which(Analysis_Final$Control.gRNA==1)],
+     breaks = 2,
+     xlab = "P.adj", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of control strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 10))
+```
+
 
