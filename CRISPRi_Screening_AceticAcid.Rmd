@@ -518,7 +518,7 @@ colnames(Analysis_Final)[89] <- "LPI_GT_MEAN_RND1_2_SD"
 
 BOX PLOT - MEAN RELATIVE GENERATION TIME (LPI GT)
 
-```{r fig1, echo=FALSE, fig.cap="Figure 1: Boxplot of mean relative generation time (LPI GT)", fig.width=2, fig.height=4}
+```{r figure1, echo=FALSE, fig.cap="Figure 1: Boxplot of mean relative generation time (LPI GT) for all strains in the library", fig.width=2, fig.height=4}
 box_stat_LPI_GT_R1_2_mean <- boxplot(Analysis_Final$LPI_GT_RND1_2_MEAN, cex=0.3)
 ```
 
@@ -578,13 +578,13 @@ length(Analysis_Final$P.adjusted_M1[which(Analysis_Final$P.adjusted_M1<=0.1)])
 
 P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS**
 
-```{r fig2, echo=FALSE, fig.cap="Figure 2: P-value diagnostics", fig.width=8, fig.height=8}
+```{r figure2, echo=FALSE, fig.cap="Figure 2: P-value diagnostic by histogram Method 1", fig.width=8, fig.height=8}
 par(mfrow=c(2,2))
 hist(Analysis_Final$P_value_M1,
      breaks = 20,
      xlab = "P-value", 
      ylab = "Frequency", 
-     main = "P-value of all strains", 
+     main = "P-values of all strains", 
      col = "skyblue",
      xlim = c(0, 1),
      ylim = c(0, 1000))
@@ -592,7 +592,7 @@ hist(Analysis_Final$P_value_M1[which(Analysis_Final$Control.gRNA==1)],
      breaks = 10,
      xlab = "P-value", 
      ylab = "Frequency", 
-     main = "P-value of control strains", 
+     main = "P-values of control strains", 
      col = "skyblue",
      xlim = c(0, 1),
      ylim = c(0, 5))
@@ -614,4 +614,167 @@ hist(Analysis_Final$P.adjusted_M1[which(Analysis_Final$Control.gRNA==1)],
      ylim = c(0, 10))
 ```
 
+#### CONCLUSIONS METHOD 1
 
+Method 1 was too rigid as n=2. Even the smallest standard deviation between round1 and round2 is making an observation insignificant. This method puts the whole weightage on the variability between round1 and round2, not on the deviation from the mean of intermediate 50%. Therefore statistical method 1 was discarded after careful evaluation. 
+
+### METHOD 2
+
+For **METHOD 2**, We hypothesized that the difference between the mean(µ) phenotypic performance (LPI GT) of a specific CRISPRi strain (StrainX) in a independent experimental round (each has three technical replicates, i.e. n=3) to the mean phenotypic performance of all the replicates of the CRISPRi control strains (with gRNA targeting no genetic locus in *S. cerevisiae*) in that respective screening round would be zero, and any difference within the CRISPRi control strain phenotypic performance range (LPI GT range) to be just by chance. 
+
+**Null Hypothesis** : µ~StrainX~(LPI_GT~Replica1~, LPI_GT~Replica2~, LPI_GT~Replica3~)- µ~CRISPRi_Control_Strains~(LPI_GT) = 0
+
+In this method P-values for each strain were estimated for each round and only strain that showed significant performance in both round were considered for further analysis
+
+First we clone the dataset in a new name to avoid any distortion down the line
+
+```{r}
+Analysis_Final_2 <- Analysis_Final
+str(Analysis_Final_2)
+```
+
+#### EXTRACT CRISPRi CONTROL STRAINS DATA
+
+Extract the CRISPRi-control strains LPI GT data from ROUND1 and ROUND2, respectively and store the output in two different vectors.
+
+* **ROUND 1**
+
+```{r}
+CRISPRi_Ctrl_Round1 <- whole_data_CRISPRi_aa_2$LPI_GT[which(whole_data_CRISPRi_aa_2$Control.gRNA == 1 
+                                                            & whole_data_CRISPRi_aa_2$Round_ID=="1st_round")]
+```
+
+* **ROUND 2**
+
+```{r}
+CRISPRi_Ctrl_Round2 <- whole_data_CRISPRi_aa_2$LPI_GT[which(whole_data_CRISPRi_aa_2$Control.gRNA == 1 
+                                                           & whole_data_CRISPRi_aa_2$Round_ID=="2nd_round")]
+``` 
+
+#### ESTIMATE P-VALUES FOR ROUND 1 AND 2
+
+P-value is estimated by Welch two sample two-sided t-test (an adaptation of Student's t-test)
+
+```{r}
+for(i in 1:nrow(Analysis_Final_2)){
+  test1 <- t(Analysis_Final_2[i, 35:37])
+  test2 <- t(Analysis_Final_2[i, 38:40])
+  if(sum(!is.na(test1[, 1]))>=2){
+    P_value_RND1 <- t.test(CRISPRi_Ctrl_Round1, test1[which(!is.na(test1[, 1]))])
+    Analysis_Final_2[i, 92] <- P_value_RND1$p.value
+  } else {
+    Analysis_Final_2[i, 92] <- NA
+  }
+  if(sum(!is.na(test2[, 1]))>=2){
+    P_value_RND2 <- t.test(CRISPRi_Ctrl_Round2, test2[which(!is.na(test2[, 1]))])
+    Analysis_Final_2[i, 93] <- P_value_RND2$p.value
+  } else {
+    Analysis_Final_2[i, 93] <- NA
+  }
+}
+colnames(Analysis_Final_2)[92:93] <- c("P_value_RND1_M2", "P_value_RND2_M2")
+```
+
+#### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUES FOR ROUND 1 AND 2
+
+```{r}
+Analysis_Final_2[which(!is.na(Analysis_Final_2$P_value_RND1_M2)), 94] <- p.adjust(Analysis_Final_2$P_value_RND1_M2[which(!is.na(Analysis_Final_2$P_value_RND1_M2))], 
+                                                                                  method = "BH", 
+                                                                                  n = length(Analysis_Final_2$P_value_RND1_M2[which(!is.na(Analysis_Final_2$P_value_RND1_M2))]))
+
+Analysis_Final_2[which(!is.na(Analysis_Final_2$P_value_RND2_M2)), 95] <- p.adjust(Analysis_Final_2$P_value_RND2_M2[which(!is.na(Analysis_Final_2$P_value_RND2_M2))], 
+                                                                                  method = "BH", 
+                                                                                  n = length(Analysis_Final_2$P_value_RND2_M2[which(!is.na(Analysis_Final_2$P_value_RND2_M2))]))
+
+colnames(Analysis_Final_2)[94:95] <- c("P.adjusted_RND1_M2", "P.adjusted_RND2_M2")
+```
+
+#### P-VALUE DISGNOSTICS FOR METHOD 2 : ROUND1
+
+NUMBER OF SIGNIFICANT STRAINS
+
+```{r}
+length(Analysis_Final_2$P_value_RND1_M2[which(Analysis_Final_2$P_value_RND1_M2<=0.05)])
+length(Analysis_Final_2$P.adjusted_RND1_M2[which(Analysis_Final_2$P.adjusted_RND1_M2<=0.05)])
+length(Analysis_Final_2$P_value_RND1_M2[which(Analysis_Final_2$P_value_RND1_M2<=0.1)])
+length(Analysis_Final_2$P.adjusted_RND1_M2[which(Analysis_Final_2$P.adjusted_RND1_M2<=0.1)])
+```
+
+P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** ROUND 1
+
+```{r figure3, echo=FALSE, fig.cap="Figure 3: P-value diagnostic by histogram, Method 2, Round 1", fig.width=8, fig.height=8}
+par(mfrow=c(2,2))
+hist(Analysis_Final_2$P_value_RND1_M2,
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-values of all strains ROUND1", 
+     col = "skyblue",
+     ylim = c(0, 5000))
+hist(Analysis_Final_2$P_value_RND1_M2[which(Analysis_Final_2$Control.gRNA==1)],
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-values of control strains ROUND1", 
+     col = "skyblue",
+     ylim = c(0, 10))
+hist(Analysis_Final_2$P.adjusted_RND1_M2,
+     breaks = 20,
+     xlab = "P.adj", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of all strains ROUND1", 
+     col = "skyblue",
+     ylim = c(0, 5000))
+hist(Analysis_Final_2$P.adjusted_RND1_M2[which(Analysis_Final_2$Control.gRNA==1)],
+     breaks = 20,
+     xlab = "P.adj", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of control strains ROUND1", 
+     col = "skyblue",
+     ylim = c(0, 10))
+```
+
+#### P-VALUE DISGNOSTICS FOR METHOD 2 : ROUND2
+
+NUMBER OF SIGNIFICANT STRAINS
+
+```{r}
+length(Analysis_Final_2$P_value_RND2_M2[which(Analysis_Final_2$P_value_RND2_M2<=0.05)])
+length(Analysis_Final_2$P.adjusted_RND2_M2[which(Analysis_Final_2$P.adjusted_RND2_M2<=0.05)])
+length(Analysis_Final_2$P_value_RND2_M2[which(Analysis_Final_2$P_value_RND2_M2<=0.1)])
+length(Analysis_Final_2$P.adjusted_RND2_M2[which(Analysis_Final_2$P.adjusted_RND2_M2<=0.1)])
+```
+
+P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** ROUND 2
+
+```{r figure4, echo=FALSE, fig.cap="Figure 4: P-value diagnostic by histogram, Method 2, Round 2", fig.width=8, fig.height=8}
+par(mfrow=c(2,2))
+hist(Analysis_Final_2$P_value_RND2_M2,
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-values of all strains ROUND2", 
+     col = "skyblue",
+     ylim = c(0, 5000))
+hist(Analysis_Final_2$P_value_RND2_M2[which(Analysis_Final_2$Control.gRNA==1)],
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-values of control strains ROUND2", 
+     col = "skyblue",
+     ylim = c(0, 10))
+hist(Analysis_Final_2$P.adjusted_RND2_M2,
+     breaks = 20,
+     xlab = "P.adj", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of all strains ROUND2", 
+     col = "skyblue",
+     ylim = c(0, 5000))
+hist(Analysis_Final_2$P.adjusted_RND2_M2[which(Analysis_Final_2$Control.gRNA==1)],
+     breaks = 20,
+     xlab = "P.adj", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of control strains ROUND2", 
+     col = "skyblue",
+     ylim = c(0, 10))
+```
