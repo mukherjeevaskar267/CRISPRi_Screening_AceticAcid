@@ -536,6 +536,7 @@ Therefore, extraction of the data points within IQR
 ```{r}
 Intermediate_50 <- Analysis_Final$LPI_GT_RND1_2_MEAN[which(Analysis_Final$LPI_GT_RND1_2_MEAN>=-0.02428792
                                                            &Analysis_Final$LPI_GT_RND1_2_MEAN<=0.07255828)]
+summary(Intermediate_50)
 ```
 
 #### ESTIMATE P-VALUE
@@ -642,6 +643,7 @@ Extract the CRISPRi-control strains LPI GT data from ROUND1 and ROUND2, respecti
 ```{r}
 CRISPRi_Ctrl_Round1 <- whole_data_CRISPRi_aa_2$LPI_GT[which(whole_data_CRISPRi_aa_2$Control.gRNA == 1 
                                                             & whole_data_CRISPRi_aa_2$Round_ID=="1st_round")]
+summary(CRISPRi_Ctrl_Round1)
 ```
 
 * **ROUND 2**
@@ -649,6 +651,7 @@ CRISPRi_Ctrl_Round1 <- whole_data_CRISPRi_aa_2$LPI_GT[which(whole_data_CRISPRi_a
 ```{r}
 CRISPRi_Ctrl_Round2 <- whole_data_CRISPRi_aa_2$LPI_GT[which(whole_data_CRISPRi_aa_2$Control.gRNA == 1 
                                                            & whole_data_CRISPRi_aa_2$Round_ID=="2nd_round")]
+summary(CRISPRi_Ctrl_Round2)
 ``` 
 
 #### ESTIMATE P-VALUES FOR ROUND 1 AND 2
@@ -676,6 +679,8 @@ colnames(Analysis_Final_2)[92:93] <- c("P_value_RND1_M2", "P_value_RND2_M2")
 ```
 
 #### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUES FOR ROUND 1 AND 2
+
+P-value adjustment by **BENJAMINI-HOCHBERG False Discovery Rate (FDR) method**
 
 ```{r}
 Analysis_Final_2[which(!is.na(Analysis_Final_2$P_value_RND1_M2)), 94] <- p.adjust(Analysis_Final_2$P_value_RND1_M2[which(!is.na(Analysis_Final_2$P_value_RND1_M2))], 
@@ -778,3 +783,272 @@ hist(Analysis_Final_2$P.adjusted_RND2_M2[which(Analysis_Final_2$Control.gRNA==1)
      col = "skyblue",
      ylim = c(0, 10))
 ```
+
+#### CONCLUSIONS METHOD 2
+
+It is a robust statistical method. However, one of the major problem with this method is setting different thresholds for p.adjusted values and LPI GT Mean for each round.
+
+### METHOD 3 AND METHOD 4
+
+For **METHOD 3**, We hypothesized that the difference between the mean(µ) phenotypic performance of a specific CRISPRi strain (StrainX) considering all technical replicates (3 in each) in the two independent experimental rounds (i.e. n=6) to the mean phenotypic performance of all the CRISPRi strains that falls within the interquartile range (IQR) of the complete dataset would be zero, and any difference within the IQR to be just by chance. 
+
+**Null Hypothesis** : µ~StrainX~(All_replicates_LPI_GT)- µ(InterquartileRange_LPI_GT) = 0
+
+Additionally, we tested one final statistical model to determine significance of our observations
+
+For **METHOD 4**, We hypothesized that the difference between the mean(µ) phenotypic performance of a specific CRISPRi strain (StrainX) considering all technical replicates (3 in each) in the two independent experimental rounds (i.e. n=6) to the mean phenotypic performance of all the CRISPRi control strains (with gRNA targeting no genetic locus in *S. cerevisiae*) would be zero, and any difference within the CRISPRi control strains phenotypic performance range (LPI GT range) to be just by chance. 
+
+**Null Hypothesis** : µ~StrainX~(All_replicates_LPI_GT) - µ~CRISPRi_Control_Strains~(LPI_GT) = 0
+
+To ensure that we don't distort the original dataset we clone the Analysis dataset in a new name
+
+```{r}
+Analysis_Final_3 <- Analysis_Final_2
+```
+
+#### EXTRACT ALL LPI GT DATA POINTS (INCLUDING ALL REPLICATES) WITHIN INTER-QUARTILE-RANGE (IQR)
+
+Since we will consider all replicates this time, we will compare it with all replicates (NOT MEAN) that falls within IQR for Method 3. For this purpose, we extract the IQR dataset including all the replicate data for each strain. We will use the data.frame **Data_CRISPRi_aa** (see, [REMOVE ROWS WITH SPATIAL CONTROL STRAIN DATA]) to extract this numeric vector.  
+
+BOX PLOT - RELATIVE GENERATION TIME (LPI GT)
+
+```{r figure5, echo=FALSE, fig.cap="Figure 5: Boxplot of relative generation time (LPI GT) for all strains including all replicates in the library", fig.width=2, fig.height=4}
+boxplot_stat_LPI_GT <- boxplot(Data_CRISPRi_aa$LPI_GT, cex = 0.3)
+```
+
+Display Box-plot statistics
+
+```{r}
+boxplot_stat_LPI_GT$stats 
+```
+
+* 25th Percentile = -0.04373846
+* 75th Percentile = 0.09804938
+
+Therefore, extraction of the data points within IQR
+
+```{r}
+Intermediate_50_M3 <- Data_CRISPRi_aa$LPI_GT[which(Data_CRISPRi_aa$LPI_GT >=-0.04373846
+                                                   &Data_CRISPRi_aa$LPI_GT<=0.09804938)]
+summary(Intermediate_50_M3)
+```
+
+#### EXTRACT CRISPRi CONTROL STRAINS DATA (ALL REPLICATES)
+
+This time we extract all the replicate data (non the mean) of each of the CRISPRi control strains for the Method 4
+
+```{r}
+Crispri_control_M4 <- Data_CRISPRi_aa$LPI_GT[which(Data_CRISPRi_aa$Control.gRNA==1)]
+summary(Crispri_control_M4)
+```
+
+#### RECALCULATE THE LSC GT MEAN AT BASAL CONDITION AND LPI GT MEAN OF EACH STRAIN
+
+We recalculate the above parameter taking all six replicates into account and excluding the missing values. For this purpose we use a if else decision tree. This means we get a LSC GT / LPI GT value if at-least 1 replicate managed to grow at a particular condition. Else it will return a missing value or NA
+
+Additionally, we also create two columns that shows number of replicates of a strain managed to grow in basal condition (**n_CTRL**) and number of replicates in acetic acid condition (**n_LPI**)
+
+```{r}
+for(i in 1:nrow(Analysis_Final_3)){
+  test1 <- t(Analysis_Final_3[i, 9:14])
+  test2 <- t(Analysis_Final_3[i, 35:40])
+  x1 <- sum(!is.na(test1[, 1]))
+  x2 <- sum(!is.na(test2[, 1]))
+  CTRL_GT_Mean_temp <- mean(test1[which(!is.na(test1[, 1]))])
+  LPI_GT_Mean_temp <- mean(test2[which(!is.na(test2[, 1]))])
+  Analysis_Final_3[i, 96] <- CTRL_GT_Mean_temp
+  Analysis_Final_3[i, 97] <- x1
+  Analysis_Final_3[i, 98] <- LPI_GT_Mean_temp
+  Analysis_Final_3[i, 99] <- x2
+}
+colnames(Analysis_Final_3)[96:99] <- c("CTRL_GT_Mean_all", "n_CTRL", "LPI_GT_Mean_all", "n_LPI")
+```
+
+#### ESTIMATE P-VALUES FOR METHOD 3 AND 4
+
+P-value is estimated by Welch two sample two-sided t-test (an adaptation of Student's t-test)
+
+```{r}
+for(i in 1:nrow(Analysis_Final_3)){
+  test <- t(Analysis_Final_3[i, 35:40])
+  x <- sum(!is.na(test[, 1]))
+  if(x>2){
+    P.value_temp_M3 <- t.test(Intermediate_50_M3, test[which(!is.na(test[, 1]))])
+    P.value_temp_M4 <- t.test(Crispri_control_M4, test[which(!is.na(test[, 1]))])
+    Analysis_Final_3[i, 100] <- P.value_temp_M3$p.value
+    Analysis_Final_3[i, 101] <- P.value_temp_M4$p.value
+  } else {
+    Analysis_Final_3[i, 100] <- NA
+    Analysis_Final_3[i, 101] <- NA
+  }
+}
+colnames(Analysis_Final_3)[100:101] <- c("P.value_M3", "P.value_M4")
+```
+
+#### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUES FOR METHOD 3 AND 4
+
+P-value adjustment by **BENJAMINI-HOCHBERG False Discovery Rate (FDR) method**
+
+```{r}
+Analysis_Final_3[which(!is.na(Analysis_Final_3$P.value_M3)), 102] <- p.adjust(Analysis_Final_3$P.value_M3[which(!is.na(Analysis_Final_3$P.value_M3))], 
+                                                                              method = "BH", 
+                                                                              n = length(Analysis_Final_3$P.value_M3[which(!is.na(Analysis_Final_3$P.value_M3))]))
+Analysis_Final_3[which(!is.na(Analysis_Final_3$P.value_M4)), 103] <- p.adjust(Analysis_Final_3$P.value_M4[which(!is.na(Analysis_Final_3$P.value_M4))], 
+                                                                              method = "BH", 
+                                                                              n = length(Analysis_Final_3$P.value_M4[which(!is.na(Analysis_Final_3$P.value_M4))]))
+colnames(Analysis_Final_3)[102:103] <- c("P.adjusted_M3", "P.adjusted_M4")
+```
+
+#### P-VALUE DISGNOSTICS FOR METHOD 3
+
+NUMBER OF SIGNIFICANT STRAINS
+
+```{r}
+length(Analysis_Final_3$P.value_M3[which(Analysis_Final_3$P.value_M3<=0.05)])
+length(Analysis_Final_3$P.adjusted_M3[which(Analysis_Final_3$P.adjusted_M3<=0.05)])
+length(Analysis_Final_3$P.value_M3[which(Analysis_Final_3$P.value_M3<=0.1)])
+length(Analysis_Final_3$P.adjusted_M3[which(Analysis_Final_3$P.adjusted_M3<=0.1)])
+```
+
+P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** 
+
+```{r figure6, echo=FALSE, fig.cap="Figure 6: P-value diagnostic by histogram, Method 3", fig.width=8, fig.height=8}
+par(mfrow=c(2,2))
+hist(Analysis_Final_3$P.value_M3,
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-value of all strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 3000),
+     cex.lab= 1.5)
+hist(Analysis_Final_3$P.value_M3[which(Analysis_Final_3$Control.gRNA==1)],
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-value of control strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 10),
+     cex.lab= 1.5)
+hist(Analysis_Final_3$P.adjusted_M3,
+     breaks = 20,
+     xlab = "P.value adjusted", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of all strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 3000),
+     cex.lab= 1.5)
+hist(Analysis_Final_3$P.adjusted_M3[which(Analysis_Final_3$Control.gRNA==1)],
+     breaks = 20,
+     xlab = "P.value adjusted", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of control strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 10),
+     cex.lab= 1.5)
+```
+
+#### P-VALUE DISGNOSTICS FOR METHOD 4
+
+NUMBER OF SIGNIFICANT STRAINS
+
+```{r}
+length(Analysis_Final_3$P.value_M4[which(Analysis_Final_3$P.value_M4<=0.05)])
+length(Analysis_Final_3$P.adjusted_M4[which(Analysis_Final_3$P.adjusted_M4<=0.05)])
+length(Analysis_Final_3$P.value_M4[which(Analysis_Final_3$P.value_M4<=0.1)])
+length(Analysis_Final_3$P.adjusted_M4[which(Analysis_Final_3$P.adjusted_M4<=0.1)])
+```
+
+P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** 
+
+```{r figure7, echo=FALSE, fig.cap="Figure 7: P-value diagnostic by histogram, Method 4", fig.width=8, fig.height=8}
+par(mfrow=c(2,2))
+hist(Analysis_Final_3$P.value_M4,
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-value of all strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 3000),
+     cex.lab= 1.5)
+hist(Analysis_Final_3$P.value_M4[which(Analysis_Final_3$Control.gRNA==1)],
+     breaks = 20,
+     xlab = "P-value", 
+     ylab = "Frequency", 
+     main = "P-value of control strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 10),
+     cex.lab= 1.5)
+hist(Analysis_Final_3$P.adjusted_M4,
+     breaks = 20,
+     xlab = "P.value adjusted", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of all strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 3000),
+     cex.lab= 1.5)
+hist(Analysis_Final_3$P.adjusted_M4[which(Analysis_Final_3$Control.gRNA==1)],
+     breaks = 20,
+     xlab = "P.value adjusted", 
+     ylab = "Frequency", 
+     main = "P.adjusted values of control strains", 
+     col = "skyblue",
+     xlim = c(0, 1),
+     ylim = c(0, 10),
+     cex.lab= 1.5)
+```
+
+#### CONCLUSIONS METHOD 3
+
+P.values generated by Method 3 can be corrected efficiently using the FDR method and after the correction the P.adjusted values have nearly equal distribution, which is indicative of a robust statistical outcome. Therefore Method 3 is a good statistical method for this dataset.
+
+#### CONCLUSIONS METHOD 4
+
+Although Method 4 is effective to identify candidates deviated most from the CRISPRi control means, but the FDR method is less effective on the generated P.value. Therefore, less efficient for the current dataset. Moreover, the CRISPRi control strains for some reason consistently displayed a slower growth under acetic acid compared to the mean of the population. This resulted a bias for method 4 in candidate selection. 
+
+### FINAL CONCLUSION FOR STATISTICAL ANALYSIS
+
+Out of the 4 statistical methods evaluated, **METHOD 3** was the most promising method to identify the significant candidates. Therefore, for this study we considered the results of statistical Method 3 for further downstream analysis. 
+
+## SETTING THE STATISTICAL AND EFFECTSIZE THRESHOLD
+
+Number of strains with **Adjusted P-value ≤ 0.1** 
+
+```{r}
+length(Analysis_Final_3$P.adjusted_M3[which(Analysis_Final_3$P.adjusted_M3 <= 0.1)])
+```
+
+To avoid missing potential candidates just because of high variability among the replicates, we keep the adjusted P-value threshold less strict i.e. ≤ 0.1. In addition, we introduce an effect size threshold i.e. the phenotypic performance range of CRISPRi control strains. 
+
+
+
+
+
+* Estimating the Effect size threshold to identify acetic acid sensitive candidates
+
+```{r}
+max(Analysis_Final_3$LPI_GT_Mean_all[which(Analysis_Final_3$Control.gRNA==1)])
+```
+
+Therefore, any strain that have an **adjusted P-value ≤ 0.1** AND **mean LPI GT ≥ 0.165662** will be considered **SENSITIVE to acetic acid** 
+ 
+
+* Estimating the Effect size threshold to identify acetic acid tolerant candidates
+
+```{r}
+min(Analysis_Final_3$LPI_GT_Mean_all[which(Analysis_Final_3$Control.gRNA==1)])
+```
+
+Therefore, any strain that have an **adjusted P-value ≤ 0.1** AND **mean LPI GT ≤ -0.03680838** will be considered **TOLERANT to acetic acid** 
+
+
+
+
+
