@@ -1027,17 +1027,13 @@ length(Analysis_Final_3$P.adjusted_M3[which(Analysis_Final_3$P.adjusted_M3 <= 0.
 
 To avoid missing potential candidates just because of high variability among the replicates, we keep the adjusted P-value threshold less strict i.e. ≤ 0.1. In addition, we introduce an effect size threshold i.e. the phenotypic performance range of CRISPRi control strains. 
 
-
-
-
-
 * Estimating the Effect size threshold to identify acetic acid sensitive candidates
 
 ```{r}
 max(Analysis_Final_3$LPI_GT_Mean_all[which(Analysis_Final_3$Control.gRNA==1)])
 ```
 
-Therefore, any strain that have an **adjusted P-value ≤ 0.1** AND **mean LPI GT ≥ 0.165662** will be considered **SENSITIVE to acetic acid** 
+Therefore, any strain that have an **adjusted P-value ≤ 0.1** AND **mean LPI GT > 0.165662** will be considered **SENSITIVE to acetic acid** 
  
 
 * Estimating the Effect size threshold to identify acetic acid tolerant candidates
@@ -1046,8 +1042,101 @@ Therefore, any strain that have an **adjusted P-value ≤ 0.1** AND **mean LPI G
 min(Analysis_Final_3$LPI_GT_Mean_all[which(Analysis_Final_3$Control.gRNA==1)])
 ```
 
-Therefore, any strain that have an **adjusted P-value ≤ 0.1** AND **mean LPI GT ≤ -0.03680838** will be considered **TOLERANT to acetic acid** 
+Therefore, any strain that have an **adjusted P-value ≤ 0.1** AND **mean LPI GT < -0.03680838** will be considered **TOLERANT to acetic acid** 
 
+## EXTRACT THE ACETIC ACID TOLERANT STRAINS
+
+* Extract the row index that satisfy the statistical (adjusted P-value ≤ 0.1) and effect size (mean LPI GT < -0.03680838) criterion for acetic acid tolerant candidates
+
+```{r}
+candidate_padj_0.1_FIT_M3 <- which((Analysis_Final_3$LPI_GT_Mean_all < -0.03680838 & Analysis_Final_3$P.adjusted_M3<= 0.1))
+length(candidate_padj_0.1_FIT_M3)
+```
+
+This gives **478 ACETIC ACID TOLERANT** strains
+
+* Extract the row data of acetic acid tolerant strains
+
+```{r}
+Fit_M3_complete <- Analysis_Final_3[candidate_padj_0.1_FIT_M3, ]
+Fit_M3_complete <- Fit_M3_complete[order(Fit_M3_complete$LPI_GT_Mean_all, decreasing = FALSE), ]
+str(Fit_M3_complete)
+```
+
+## EXTRACT ALL CRISPRi TARGET GENES THAT INDUCED ACETIC ACID TOLERANCE
+
+* Extract description of all genes (1617 genes) involved in this study from Saccharomyces Genome Database (SGD). A .csv file for this purpose is already exist in the **COMPILED_DATA** folder 
+
+**Gene Description Key file** :Gene_List_CRISPRi_lib.csv
+
+```{r}
+whole_Gene_list_Final <- read.csv("COMPILED_DATA/Gene_List_CRISPRi_lib.csv", na.strings = "", stringsAsFactors = FALSE)
+rownames(whole_Gene_list_Final) <- whole_Gene_list_Final$LIB_ID
+str(whole_Gene_list_Final)
+```
+
+* Next, prepare a data.frame with descriptions of CRISPRi target genes that induced acetic acid **tolerance**. This file also include how many gRNAs per target gene induced the acetic acid tolerance. 
+
+```{r}
+Fit_all_M3 <- data.frame(sort(table(Analysis_Final_3$GENE[candidate_padj_0.1_FIT_M3]), decreasing = TRUE))
+y <- as.character(Fit_all_M3$Var1)
+x <- whole_Gene_list_Final[y, ]
+Fit_all_M3_description <- cbind(Fit_all_M3, x[, -1])
+str(Fit_all_M3_description)
+nrow(Fit_all_M3_description)
+```
+
+This gives **370** CRISPRi target genes that induced acetic acid **TOLERANCE**
+
+## EXTRACT THE ACETIC ACID SENSITIVE STRAINS 
+
+* First identify strains that grew well in Basal condition but did not grow or less than three (out of six) replicates managed to grow under acetic acid stress. We will call these strains as **SUPER SENSITIVE**. P-value estimation for these strains were not possible or was not performed as n was ≤ 2. 
+
+```{r}
+super_sen_M3 <- Analysis_Final_3[which(!is.na(Analysis_Final_3$CTRL_GT_Mean_all)
+                                       &(Analysis_Final_3$n_LPI<3)
+                                       &(
+                                         is.na(Analysis_Final_3$LPI_GT_Mean_all)
+                                         |(Analysis_Final_3$LPI_GT_Mean_all> 0.165662)
+                                       )
+), ]
+nrow(super_sen_M3)
+```
+
+This gives **17 ACETIC ACID SUPER SENSITIVE** strains
+
+* Next, extract the row index that satisfy the statistical (adjusted P-value ≤ 0.1) and effect size (mean LPI GT > 0.165662) criterion for acetic acid tolerant candidates
+
+```{r}
+candidate_padj_0.1_SEN_M3 <- which((Analysis_Final_3$LPI_GT_Mean_all > 0.165662 & Analysis_Final_3$P.adjusted_M3<= 0.1))
+length(candidate_padj_0.1_SEN_M3)
+```
+
+This gives **481 ACETIC ACID SENSITIVE** strains. 
+
+* Extract the row data of acetic acid sensitive strains
+
+```{r}
+Sen_M3_complete <- rbind(super_sen_M3, Analysis_Final_3[candidate_padj_0.1_SEN_M3, ])
+Sen_M3_complete <- Sen_M3_complete[order(Sen_M3_complete$LPI_GT_Mean_all, decreasing = TRUE), ]
+nrow(Sen_M3_complete)
+```
+
+In **TOTAL**, 481+17 = **498** strains displayed acetic acid **SENSITIVITY**
+  
+## EXTRACT ALL CRISPRi TARGET GENES THAT INDUCED ACETIC ACID SENSITIVITY
+
+* Prepare a data.frame with descriptions of CRISPRi target genes that induced acetic acid **sensitivity**. This file also include how many gRNAs per target gene induced the acetic acid sensitivity.
+
+```{r}
+Sen_all_M3 <- data.frame(sort(table(c(Analysis_Final_3$GENE[candidate_padj_0.1_SEN_M3], super_sen_M3$GENE)), decreasing = TRUE))
+y <- as.character(Sen_all_M3$Var1)
+x <- whole_Gene_list_Final[y, ]
+Sen_all_M3_description <- cbind(Sen_all_M3, x[, -1])
+nrow(Sen_all_M3_description)
+```
+
+This gives **367** CRISPRi target genes that induced acetic acid **SENSITIVITY**
 
 
 
