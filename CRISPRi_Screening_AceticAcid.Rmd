@@ -912,7 +912,7 @@ length(Analysis_Final_3$P.adjusted_M3[which(Analysis_Final_3$P.adjusted_M3<=0.1)
 
 P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** 
 
-```{r figure6, echo=FALSE, fig.cap="Figure 6: P-value diagnostic by histogram, Method 3", fig.width=8, fig.height=8}
+```{r figure6, echo=FALSE, fig.cap="Figure 6 (Fig S9 in Manuscript): P-value diagnostic by histogram, Method 3", fig.width=8, fig.height=8}
 par(mfrow=c(2,2))
 hist(Analysis_Final_3$P.value_M3,
      breaks = 20,
@@ -1138,27 +1138,20 @@ nrow(Sen_all_M3_description)
 
 This gives **367** CRISPRi target genes that induced acetic acid **SENSITIVITY**
 
-## DATA VISUALIZATION
+## DATA VISUALIZATION 
 
 Here we present the SCAN-O-MATIC data in graph and charts. 
 
 ### PREREQUISITE PACKAGES
 
-* INSTALL **ggplot2**
-* INSTALL **reshape**
-* INSTALL **pheatmap**
-* INSTALL **wordcloud**
+INSTALL
 
-*Call libraries 
+* **ggplot2**
+* **reshape**
+* **pheatmap**
+* **wordcloud**
 
-```{r}
-library(ggplot2)
-library(reshape)
-library(pheatmap)
-library(wordcloud)
-```
-
-### CORRELATION SCATTER PLOT BETWEEN LPI GT MEAN ROUND 1 and LPI GT MEAN ROUND 2
+### SCATTER PLOT : CORRELATION BETWEEN LPI GT MEAN ROUND 1 and LPI GT MEAN ROUND 2
 
 Scatterplot to display reproducibility of the two scan-o-matic screenings. The mean of the three LPI_GT replicates of each strain is plotted against X and Y axis for round1 and round2, respectively. The data of the CRISPRi control strains are indicated with green dots, acetic acid sensitive strains are indicated with red dots and acetic acid tolerant strains are indicated with blue dots. Data of all other strains are indicated with black dots. 
 
@@ -1167,9 +1160,9 @@ plot(Analysis_Final_3$LPI_GT_RND1_MEAN, Analysis_Final_3$LPI_GT_RND2_MEAN,
      pch = 16, 
      cex = 0.5, 
      col = "black", 
-     main = "LPI_GT_Round1_Mean vs LPI GT_Round2_Mean", 
-     xlab = "LPI_GT_Round1_Mean", 
-     ylab = "LPI_GT_Round2_Mean", 
+     main = "Correlation between mean relative generation time (LPI GT) of Round 1 and 2", 
+     xlab = "LPI GT Round1", 
+     ylab = "LPI GT Round2", 
      xlim = c(-0.5, 2), 
      ylim = c(-0.5, 2),
      cex.lab=1.3,
@@ -1204,7 +1197,7 @@ cor(Analysis_Final_3$LPI_GT_RND1_MEAN,
     use = "complete.obs")
 ```
 
-The linear regression fitting model (**black line**) for the data of all strains together gave a co-efficient of determination i.e. **R^2^ = 0.22** and Pearson correlation coefficient **r = 0.47** 
+The linear regression fitting model (**black dashed line**) for the data of all strains together gave a co-efficient of determination i.e. **R^2^ = 0.22** and Pearson correlation coefficient **r = 0.47** 
 
 ```{r}
 summary(stats_LPI_GT_Mean_RND1vsRND2_M3_selected)
@@ -1225,9 +1218,9 @@ plot(Analysis_Final_3$CTRL_GT_Mean_all, Analysis_Final_3$LPI_GT_Mean_all,
      pch = 16, 
      cex = 0.5, 
      col = "black", 
-     main = "Overview of CRISPRi strain performance", 
-     xlab = "LSC_GT Basal.condition", 
-     ylab = "LPI_GT Acetic acid 150mM", 
+     main = "Selection of sensitive and tolerant strains", 
+     xlab = "Normalized generation time (LSC GT) Basal.condition", 
+     ylab = "Relative generation time (LPI GT) in 150mM Acetic acid", 
      xlim = c(-0.5, 2), 
      ylim = c(-0.5, 2),
      yaxt="n",
@@ -1266,5 +1259,94 @@ axis(side = 1,
 abline(h=c(-0.03680838, 0.165662), col="gray", lty=2, lwd=2)
 ```
 
+### VIOLIN PLOT
+
+Violin-plots display the spread and the distribution of the LPI GT data for all CRISPRi strains (ALL), and LPI_GT values of CRISPRi control strains
+
+* Preparing a dataset for violin plot of **LPI GT~All_strains~**, **LPI GT~Control_strains~**
+
+```{r}
+Violin_LPI_Mean_M3 <- data.frame()
+R <- length(which((Analysis_Final_3$Control.gRNA==0)
+                  &(!is.na(Analysis_Final_3$LPI_GT_Mean_all))
+))
+Violin_LPI_Mean_M3[1:R, 1] <- Analysis_Final_3$LPI_GT_Mean_all[which((Analysis_Final_3$Control.gRNA==0)
+                                                                     &(!is.na(Analysis_Final_3$LPI_GT_Mean_all)))]
+Violin_LPI_Mean_M3[1:R, 2] <- "ALL"
+R2 <- length(which(Analysis_Final_3$Control.gRNA==1))
+Violin_LPI_Mean_M3[(R+1):(R+R2), 1] <- Analysis_Final_3$LPI_GT_Mean_all[which(Analysis_Final_3$Control.gRNA==1)]
+Violin_LPI_Mean_M3[(R+1):(R+R2), 2] <- "CONTROL"
+colnames(Violin_LPI_Mean_M3)[1:2] <- c("Mean", "Label")
+```
+
+```{r figure10, echo=FALSE, fig.cap="Figure 10 (Fig. 2C INSET, in Manuscript): Violin-plots display the spread and the distribution of the LPI GT data", fig.width=5, fig.height=7}
+library(ggplot2)
+p_gg_M3 <- ggplot(Violin_LPI_Mean_M3, aes(x=Label, y=Mean, fill=Label)) + 
+  geom_violin(trim=FALSE) + 
+  geom_boxplot(width=0.1, fill="white") +
+  labs(title="Violin plot",x="Data Type", y = "LPI_GT") +
+  scale_fill_manual(values=c("white", "green"))
+p_gg_M3 + theme_classic()
+```
+
+### WORDCLOUD
+
+We display gene names that are highly represented within the fit and the sensitive strains, i.e. CRISPRi targeting of these genes by multiple gRNA displayed the tolerant / sensitive phenotype. The CRISPRi repression of a gene vs the obtained phenotype relationship is more reliable for those highly represented genes. 
+
+* WORD CLOUD for the acetic acid **TOLERANT** strains
+
+```{r figure11, echo=FALSE, fig.cap="Figure 11: Wordcloud for CRISPRi gene targets of acetic acid tolerant strains", fig.width=10, fig.height=10}
+library("wordcloud")
+wordcloud(words = Fit_all_M3$Var1, 
+          freq = Fit_all_M3$Freq, 
+          min.freq = 2,
+          random.order=FALSE, rot.per=0.35, 
+          colors=c("black", "red", "dark green", "blue"))
+```
+
+* WORD CLOUD for the acetic acid **SENSITIVE** strains
+
+```{r figure12, echo=FALSE, fig.cap="Figure 12: Wordcloud for CRISPRi gene targets of acetic acid sensitive strains", fig.width=10, fig.height=10}
+library("wordcloud")
+wordcloud(words = Sen_all_M3$Var1, 
+          freq = Sen_all_M3$Freq, 
+          min.freq = 2,
+          random.order=FALSE, rot.per=0.35, 
+          colors=c("black", "red", "dark green", "blue"))
+```
+
+### HISTOGRAM
+
+* Number of gRNA each target Gene in the CRISPRi library
+
+For this graph we fetch some additional information from a .CSV file available as supplementary in smith et al., 2017. The file is also available in our COMPILED_DATA folder
+
+**Supplementary data from smith et al., 2017** : smith_YEPGdata.csv
+
+```{r}
+Smith_Yepg_data <- read.csv("COMPILED_DATA/smith_YEPGdata.csv", na.strings = "")
+str(Smith_Yepg_data)
+```
+
+Out of several columns, the most useful for this study will be, 
+
+* Column No: 3 i.e. **Midpoint_TSS_dist**
+* Column No: 4 i.e. **Norm_atac_seq_read_density**
+* Column No: 5 i.e. **Multiple_ORFs_Targeted**
+* Column No: 6 i.e. **nearby_genes**
+
+Extract only this four column in the Analysis_Final_3 data.frame  
+
+```{r}
+for(i in 1:nrow(Analysis_Final_3)){
+  x <- which(row.names(Analysis_Final_3)[i]==Smith_Yepg_data$guide_id)
+  if(length(x)==0){
+    Analysis_Final_3[i, 104:107] <- NA
+  } else {
+    Analysis_Final_3[i, 104:107] <- Smith_Yepg_data[x, 3:6]
+  }
+}
+colnames(Analysis_Final_3)[104:107] <- colnames(Smith_Yepg_data)[3:6]
+```
 
 
