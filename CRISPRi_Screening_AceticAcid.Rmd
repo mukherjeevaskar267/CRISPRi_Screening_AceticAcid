@@ -1138,6 +1138,30 @@ nrow(Sen_all_M3_description)
 
 This gives **367** CRISPRi target genes that induced acetic acid **SENSITIVITY**
 
+## GO ANALYSIS
+
+**Data preparation** 
+
+Extracting the SGD_ID for the unique genes in **Fit_all_M3** (see [EXTRACT ALL CRISPRi TARGET GENES THAT INDUCED ACETIC ACID TOLERANCE]) 
+
+```{r}
+Fit_unique_M3 <- as.character(Fit_all_M3$Var1)
+x <- whole_Gene_list_Final[Fit_unique_M3, ]
+Fit_unique_M3_SGD_ID <- x$SGD_DB_ID
+str(Fit_unique_M3_SGD_ID)
+```
+
+Extracting the SGD_ID for the unique genes in **Sen_all_M3** (see [EXTRACT ALL CRISPRi TARGET GENES THAT INDUCED ACETIC ACID SENSITIVITY]) 
+
+```{r}
+Sen_unique_M3 <- as.character(Sen_all_M3$Var1)
+x <- whole_Gene_list_Final[Sen_unique_M3, ]
+Sen_unique_M3_SGD_ID <- x$SGD_DB_ID
+str(Sen_unique_M3_SGD_ID)
+```
+
+Perform GO analysis with the above gene identifier sets in Saccharomyces genome database [link](https://www.yeastgenome.org/goTermFinder) 
+
 ## DATA VISUALIZATION 
 
 Here we present the SCAN-O-MATIC data in graph and charts. 
@@ -1317,9 +1341,15 @@ wordcloud(words = Sen_all_M3$Var1,
 
 ### HISTOGRAM
 
-* Number of gRNA each target Gene in the CRISPRi library
+#### **STRAINS/GENE** AND **gRNA DISTANCE FROM TSS**
 
-For this graph we fetch some additional information from a .CSV file available as supplementary in smith et al., 2017. The file is also available in our COMPILED_DATA folder
+First assigning rownames as the gRNA names in the **Analysis_Final_3** data.frame
+
+```{r}
+row.names(Analysis_Final_3) <- Analysis_Final_3$gRNA_name
+```
+
+Next, for this graph we fetch some additional information from a .CSV file available as supplementary in smith et al., 2017. The file is also available in our COMPILED_DATA folder
 
 **Supplementary data from smith et al., 2017** : smith_YEPGdata.csv
 
@@ -1347,6 +1377,227 @@ for(i in 1:nrow(Analysis_Final_3)){
   }
 }
 colnames(Analysis_Final_3)[104:107] <- colnames(Smith_Yepg_data)[3:6]
+str((Analysis_Final_3)[104:107])
 ```
+
+Estimate the gRNA frequency
+
+```{r}
+gRNA_Freq <- data.frame(sort(table(Analysis_Final_3$GENE), decreasing = TRUE))
+```
+
+Plot the graphs
+
+```{r figure13, echo=FALSE, fig.cap="Figure 13: Histogram of number of strains per target gene in the CRISPRi library (TOP PANEL). Histogram of gRNA distance from Transcription starting site of the Genes (BOTTOM PANEL)", fig.width=4, fig.height=8}
+par(mfrow=c(2,1))
+hist(gRNA_Freq$Freq,
+     breaks = 20,
+     xlim = c(0, 20),
+     ylim = c(0, 300),
+     xlab = "Strains per gene",
+     ylab = "Genes per bin",
+     col = "skyblue",
+     main = "Total number of strains per Gene")
+hist(Analysis_Final_3$Midpoint_TSS_dist,
+     breaks = 20,
+     xlim=c(-300, 300),
+     ylim=c(0, 1200),
+     xlab = "Distance of gRNA relative to TSS",
+     ylab = "Number of gRNA per bin",
+     col = "skyblue",
+     main= "Frequency of gRNA distance from TSS")
+```
+
+#### NORMALIZED GENERATION TIME (LSC GT) IN BASAL AND UNDER ACETIC ACID STRESS
+
+First the LSC GT mean under acetic acid stress was recalculated for all the strains excluding the missing values
+
+```{r}
+for(i in 1:nrow(Analysis_Final_3)){
+  test1 <- t(Analysis_Final_3[i, 22:27])
+  x1 <- sum(!is.na(test1[, 1]))
+  AA_GT_Mean_temp <- mean(test1[which(!is.na(test1[, 1]))])
+  Analysis_Final_3[i, 32] <- AA_GT_Mean_temp
+}
+```
+
+Plot the histogram
+
+```{r figure14, echo=FALSE, fig.cap="Figure 14 (fig. 2B in manuscript): Histogram to display strains growth in Basal condition (TOP PANEL). Histogram to display strains growth at 150mM of acetic acid (BOTTOM PANEL)", fig.width=5, fig.height=10}
+par(mfrow=c(2,1))
+hist(Analysis_Final_3$CTRL_GT_Mean_all,
+     breaks = 25,
+     xlim = c(-0.5, 2),
+     ylim = c(0, 3000),
+     xlab = "",
+     ylab= "Strains per bin at Basal condition",
+     col = "#A0A0A0",
+     main = "  Normalized generation time 
+     in basal and under acetic acid stress")
+abline(v= c(log2(0.9), log2(1.1)), col ="black", lty=2)
+hist(Analysis_Final_3$AA_GT_RND1_2_MEAN,
+     breaks = 100,
+     xlim = c(-0.5, 2),
+     ylim = c(0, 3000),
+     xlab = "Normalized generation time LSC GT",
+     ylab= "Strains per bin at 150mM acetic acid",
+     main = "",
+     col = "#FF33FF")
+abline(v= c(log2(0.9), log2(1.1)), col ="black", lty=2)
+```
+
+# BIOSCREEN LIQUID MICRO-CULTIVATION ANALYSIS
+
+The results from Scan-o-matic phenomics were validated in liquid microcultivation growth experiment in bioscreen
+
+## ATC TITRATION DATA ANALYSIS
+
+Some CRISPRi strains were selcetd for a liquid growth experiment in bioscreen to identify a ATc concentration that can induce similar growth inhibition in YNB liquid media (Basal condition) as we observed in our Quantitative spot test assay on YNB agar media with 7.5 ug/ml of ATc. Here we analyze that data set. These strains were selected based on the competitive growth assay of the CRISPRi library in liquid YPD medium with and without 250 ng/ml of ATc by (Smith et al., 2017). 
+
+
+
+### DATA PREPARATION FOR ATC DOSAGE RESPONSE
+
+* Compiled Data Import: The ATc titration data is available in compiled form in the COMPILED_DATA folder
+
+**ATc titration data compiled** : ATc_liq_titer_data.csv
+
+```{r}
+Atc_liq_data <- read.csv("COMPILED_DATA/ATc_liq_titer_data.csv", na.strings = "NaN", header = TRUE)
+str(Atc_liq_data)
+```
+
+Note that in liquid experiment, three phenotypes were estimated i.e. growth **LAG** phase, **GENERATION TIME** and growth biomass **YIELD**   
+
+* Extract CRISPRi control strain (CC23) data
+
+```{r}
+Atc_liq_cc23 <- Atc_liq_data[which(Atc_liq_data$gRNA_name=="Ctrl-CC23"), ]
+```
+
+* Extract additional information such as the strain's gRNA names and ATc concentrations used for titration
+
+```{r}
+uniq_gRNA <- unique(Atc_liq_data$gRNA_name)
+uniq_conc <- unique(Atc_liq_data$Atc_concentration)
+```
+
+* Data transformation (log)
+
+```{r}
+Atc_liq_data[, 10:15] <- log(Atc_liq_data[, 4:9])
+```
+
+* Estimate Normalized growth (LSC) for **LAG** , **GENERATION TIME** and **YIELD**
+
+To determine the normalized growth or Log Strain Co-efficient (LSC) values, we use the data of the control strain CC23. Substracting the log transformed growth phenotypes of CC23 from the log transformed phenotypes of the strains in the respective concentrations of ATc generates the log strain coefficients or LSC values at that condition for each phenotypes. 
+
+```{r}
+for(i in 1:length(uniq_gRNA)){
+  for(j in 1:length(uniq_conc)){
+    Atc_liq_data[which(Atc_liq_data$gRNA_name==uniq_gRNA[i]&
+                         Atc_liq_data$Atc_concentration==uniq_conc[j]), 16:21] <- 
+      Atc_liq_data[which(Atc_liq_data$gRNA_name==uniq_gRNA[i]&
+                           Atc_liq_data$Atc_concentration==uniq_conc[j]), 10:15] - 
+      Atc_liq_data[which(Atc_liq_data$gRNA_name=="Ctrl-CC23"&
+                           Atc_liq_data$Atc_concentration==uniq_conc[j]), 10:15]
+  }
+}
+```
+
+* Estimate the Mean and Standard deviation of the LSC values for each phenotype 
+
+```{r}
+for(i in 1:nrow(Atc_liq_data)){
+  Atc_liq_data[i, 22] <- mean(as.numeric(Atc_liq_data[i, c(16, 19)][which(!is.na(Atc_liq_data[i, c(16, 19)]))]))
+  Atc_liq_data[i, 23] <- sd(as.numeric(Atc_liq_data[i, c(16, 19)][which(!is.na(Atc_liq_data[i, c(16, 19)]))]))
+  Atc_liq_data[i, 24] <- mean(as.numeric(Atc_liq_data[i, c(17, 20)][which(!is.na(Atc_liq_data[i, c(17, 20)]))]))
+  Atc_liq_data[i, 25] <- sd(as.numeric(Atc_liq_data[i, c(17, 20)][which(!is.na(Atc_liq_data[i, c(17, 20)]))]))
+  Atc_liq_data[i, 26] <- mean(as.numeric(Atc_liq_data[i, c(18, 21)][which(!is.na(Atc_liq_data[i, c(18, 21)]))]))
+  Atc_liq_data[i, 27] <- sd(as.numeric(Atc_liq_data[i, c(18, 21)][which(!is.na(Atc_liq_data[i, c(18, 21)]))]))
+}
+```
+
+* Assign new column names
+
+```{r}
+colnames(Atc_liq_data)[10:15] <- paste0("log_", colnames(Atc_liq_data)[4:9])
+colnames(Atc_liq_data)[16:21] <- paste0("LSC_", colnames(Atc_liq_data)[4:9])
+colnames(Atc_liq_data)[22:23] <- paste0(c("Mean_", "SD_"), "LSC_Lag")
+colnames(Atc_liq_data)[24:25] <- paste0(c("Mean_", "SD_"), "LSC_GT")
+colnames(Atc_liq_data)[26:27] <- paste0(c("Mean_", "SD_"), "LSC_Yield")
+```
+
+### ATc DOSAGE RESPONSE VISUALIZATION BY SCATTER-PLOT
+
+First making a subset to trim the dataset and include data for only the following gRNA_names *ACT1-NRg-5*, *ACT1-NRg-8*, *SEC21-NRg-5*, *VPS1-TRg-1*. These gRNA's previously showed to induce strong CRISPRi mediated repression that ultimately caused lethality or very poor growth. These strains were also used for the ATc titration on YNB agar plates by Qualitative Spot-Test Assay. We also display the performance of another CRISPRi control strain *Ctrl-CC11* just to display how it performed compared to other strains. 
+
+```{r}
+name_gRNA_atc_titer <- c("ACT1-NRg-5", "ACT1-NRg-8", "Ctrl-CC11", "SEC21-NRg-5", "VPS1-TRg-1")
+test <- data.frame()
+Atc_titer_subset <- data.frame()
+for(i in 1:length(name_gRNA_atc_titer)){
+  test <- Atc_liq_data[which(Atc_liq_data$gRNA_name==name_gRNA_atc_titer[i]), ]
+  Atc_titer_subset <- rbind(Atc_titer_subset, test)
+}
+```
+
+* PLOT NORMALIZED LAG, GENERATION TIME AND YIELD
+
+```{r figure15, echo=FALSE, message=FALSE, fig.cap="Figure 15 (fig. S1B in manuscript): Scatter plot to display ATC dosage response on Lag phase", fig.width=6, fig.height=4}
+library(ggplot2)
+plt1 <- ggplot(Atc_titer_subset, aes(x=Atc_concentration, y=Mean_LSC_Lag, group=gRNA_name, color=gRNA_name)) + 
+  geom_pointrange(aes(ymin=Mean_LSC_Lag-SD_LSC_Lag, ymax=Mean_LSC_Lag+SD_LSC_Lag)) +
+  labs(title="Normalized Lag phase at different ATc concentration", x="ATc (ug/ml)", y = "LSC Lag phase")+
+  theme_classic()+
+  scale_color_manual(values=c('#999999','#E69F00', "green3", "red", "black"))+
+  scale_x_continuous(breaks = c(0, 1, 2, 3, 5, 7, 10, 15, 25),
+                     labels = c("0", "1", "2", "3", "5", "7", "10", "15", "25"),
+                     limits = c(0, 26))+
+  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1, 1.5, 2),
+                     labels = c("-1", "-0.5", "0", "0.5", "1", "1.5", "2"),
+                     limits = c(-1, 2))+
+  theme(legend.position="none")
+suppressWarnings(print(plt1))
+```
+
+```{r figure16, echo=FALSE, fig.cap="Figure 16 (fig. S1B in manuscript): Scatter plot to display ATC dosage response on Generation time", fig.width=6, fig.height=4}
+plt2 <- ggplot(Atc_titer_subset, aes(x=Atc_concentration, y=Mean_LSC_GT, group=gRNA_name, color=gRNA_name)) + 
+  geom_pointrange(aes(ymin=Mean_LSC_GT-SD_LSC_GT, ymax=Mean_LSC_GT+SD_LSC_GT)) +
+  labs(title="Normalized Generation time at different ATc concentration", x="ATc (ug/ml)", y = "LSC GT")+
+  theme_classic()+
+  scale_color_manual(values=c('#999999','#E69F00', "green3", "red", "black"))+
+  scale_x_continuous(breaks = c(0, 1, 2, 3, 5, 7, 10, 15, 25),
+                     labels = c("0", "1", "2", "3", "5", "7", "10", "15", "25"),
+                     limits = c(0, 26))+
+  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1, 1.5, 2),
+                     labels = c("-1", "-0.5", "0", "0.5", "1", "1.5", "2"),
+                     limits = c(-1, 2))+
+   theme(legend.position="none")
+suppressWarnings(print(plt2))
+```
+
+```{r figure17, echo=FALSE, message=FALSE, fig.cap="Figure 17 (fig. S1B in manuscript): Scatter plot to display ATC dosage response on Yield", fig.width=6, fig.height=4}
+plt3 <- ggplot(Atc_titer_subset, aes(x=Atc_concentration, y=Mean_LSC_Yield, group=gRNA_name, color=gRNA_name)) + 
+  geom_pointrange(aes(ymin=Mean_LSC_Yield-SD_LSC_Yield, ymax=Mean_LSC_Yield+SD_LSC_Yield)) +
+  labs(title="Normalized Yield at different ATc concentration", x="ATc (ug/ml)", y = "LSC Yield")+
+  theme_classic()+
+  scale_color_manual(values=c('#999999','#E69F00', "green3", "red", "black"))+
+  scale_x_continuous(breaks = c(0, 1, 2, 3, 5, 7, 10, 15, 25),
+                     labels = c("0", "1", "2", "3", "5", "7", "10", "15", "25"),
+                     limits = c(0, 26))+
+  scale_y_continuous(breaks = c(-2.5, -2, -1.5, -1, -0.5, 0, 0.5),
+                     labels = c("-2.5", "-2", "-1.5", "-1", "-0.5", "0", "0.5"),
+                     limits = c(-2.5, 0.5))+
+  theme(legend.position="bottom")
+suppressWarnings(print(plt3))
+```
+
+## VALIDATION DATA ANALYSIS
+
+In order to validate the acetic acid sensitivity or tolerance observed for the CRISPRi strains in the scan-o-matic screening, selected strains were grown in liquid YNB medium using the Bioscreen platform. The 48 most acetic acid sensitive and 50 most tolerant CRISPRi strains from the scan-o-matic analysis were selected for the validation. Moreover, all CRISPRi strains with gRNAs targeting  any of the following 12 genes:*RPT4, RPN9, PRE4, MRPL10, MRPL4, SEC27, MIA40, VPS45, PUP3, VMA3, SEC62, COG1*, were included making a total of 176 strains that were grown together with 7 control strains in liquid medium. The strains were grown in liquid YNB medium (basal condition) and in liquid YNB medium supplemented with 125 or 150mM of acetic acid. For each strain, 3 independent replicates were included for each growth condition. 
+
+### VALIDATION DATA IMPORT
+
 
 
