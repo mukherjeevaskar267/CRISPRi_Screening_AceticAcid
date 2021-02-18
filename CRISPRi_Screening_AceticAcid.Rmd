@@ -12,7 +12,57 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# IMPORT SCAN-O-MATIC RAW DATA
+# SCAN-O-MATIC PHENOMICS
+
+We screened a CRISPR interference library consisting of >9000 Saccharomyces cerevisiae strains where >98% of all essential and respiratory growth-essential genes were targeted with multiple gRNAs. The screen was performed using the high-throughput, high-resolution scan-o-matic platform (Zackrisson et al., 2016) [link](https://doi.org/10.1534/g3.116.032342), where each strain is analyzed separately in order to generate and analyze high-resolution growth curves without the influence/competition from other strains.
+
+## ACETIC ACID TITRATION
+
+In an ideal library screening (with strains coming from the same background) we should be able to observe a normally distributed wide phenotypic variability under a particular test condition to pick the best and the worst performers in the library. For this purpose, we need to identify a stressor concentration (in this case acetic acid), which should be severe enough to induce large phenotypic variability but at the same time most strains should manage to grow and give us a quantitative phenotype. Therefore, Plate 7 & 8 was pre-screened at different acetic acid concentrations (0, 50mM, 75mM, 100mM, and 150mM of acetic acid) to identify **appropriate acetic acid concentration** for the whole library screening. Unfortunately, the spatial control strain at this point was BY4741, which did not growth at 150mM (BY4741 was later replaced with CC23 i.e. one of the CRISPRi control strain with a gRNA non-homologous to Saccharomyces cerevisiae genome). Therefore, to compare our results we used the absolute generation time (without any normalization for spatial bias). We assumed that the phenotypic variability due to spatial bias will be very similar within the test plates and since we will only look at the phenotypic variability within the strains at this point, it should not severely influence the final conclusion of this titration round. The data is available in the **COMPILED_DATA** folder. 
+
+**Acetic acid titration data** : 20210120_AA_titration_absolute_compiled.csv
+
+* Import the data
+
+```{r}
+AA_titration_data <- read.csv("COMPILED_DATA/20210120_AA_titration_absolute_compiled.csv", na.strings = "NoGrowth")
+```
+
+* Install packages: Out of these **ggplot2** and **reshape** will be frequently used later for data visualization
+
++ ggplot2
++ reshape)
++ ggridges
+
+* Prepare the data in the format requisite for ggplot2 package using reshape
+
+```{r}
+AA_titration_data_reshape <- reshape(data=AA_titration_data, idvar="gRNA_name",
+                                     varying = colnames(AA_titration_data)[3:7],
+                                     v.name=c("Generation_time"),
+                                     new.row.names = 1:30000,
+                                     direction="long",
+                                     timevar = "Condition",
+                                     times = colnames(AA_titration_data)[3:7])
+```
+
+* Plot the Ridgeline plots: A nice way to compare the density trace of multiple dataset
+
+```{r figure1, echo=FALSE, fig.cap="Figure 1: Density trace of absolute generation time of strains in plate 7 and 8 at different concentration of acetic acid", fig.width=6, fig.height=10}
+library(ggplot2)
+library(reshape)
+library(ggridges)
+plt0 <- ggplot(AA_titration_data_reshape, aes(x = Generation_time, y = Condition, height = stat(density))) + 
+  geom_density_ridges2(stat = "binline", bins = 200, scale = 2, draw_baseline = FALSE)+
+  theme_ridges()
+suppressWarnings(print(plt0))
+```
+
+### CONCLUSION OF ACETIC ACID TITRATION
+
+At 150mM we observed the largest phenotypic variability within the strains of plate 7 and 8. Therefore, 150mM was the selected acetic acid concentration to screen the entire library. 
+
+## IMPORT SCAN-O-MATIC RAW DATA
 
 The phenotypic data generated in scan-o-matic screening in .csv format. 
 We extract both the absolute and the normalized phenotypes.
@@ -41,19 +91,19 @@ AND
 Plate 1 Normalized data in acetic acid (aa) stress have the string  
 *aa1.phenotypes.Normalized*
 
-## PURPOSE 1
+### PURPOSE 1
 At the end of this data import session, a single data.frame will be generated with the data of 24 plates. The whole dataset will be labeled with the strains attributes using the metadata key file (provided in the COMPILED_DATA folder). The data import below is shown for only Round2 dataset. Round1 can be generated modifying the folder location
 
 **METADATA KEY FILE** : library_keyfile1536.csv
 
-## IMPORTING THE METADATA FILE  
+### IMPORTING THE METADATA FILE  
 
 ```{r}
 Metadata_CRISPRi <- read.csv("COMPILED_DATA/library_keyfile1536.csv", na.strings = "#N/A", stringsAsFactors = FALSE)
 str(Metadata_CRISPRi)
 ```
 
-## GENERATE BASAL **ABSOLUTE** DATASET
+### GENERATE BASAL **ABSOLUTE** DATASET
 
 ```{r}
 m <- vector(mode = "character", length = 0)
@@ -83,7 +133,7 @@ colnames(data_Ctrl_Abs_Trim) <- c("CTRL_Y_ABS", "CTRL_GT_ABS")
 str(data_Ctrl_Abs_Trim)
 ```
 
-## GENERATE ACETIC ACID **ABSOLUTE** DATASET
+### GENERATE ACETIC ACID **ABSOLUTE** DATASET
 
 Following the same strategy as above
 
@@ -102,7 +152,7 @@ data_AA_Abs_Trim <- data_AA_Abs[, 14:15]
 colnames(data_AA_Abs_Trim) <- c("AA_Y_ABS", "AA_GT_ABS")
 ```
 
-## GENERATE BASAL **NORMALIZED** DATASET
+### GENERATE BASAL **NORMALIZED** DATASET
 
 ```{r}
 m <- vector(mode = "character", length = 0)
@@ -130,7 +180,7 @@ data_Ctrl_Norm_Trim <- data_Ctrl_Norm[, 4:5]
 colnames(data_Ctrl_Norm_Trim) <- c("CTRL_Y_NORM", "CTRL_GT_NORM")
 ```
 
-## GENERATE ACETIC ACID **NORMALIZED** DATASET
+### GENERATE ACETIC ACID **NORMALIZED** DATASET
 
 Same as above 
 
@@ -149,7 +199,7 @@ data_AA_Norm_Trim <- data_AA_Norm[, 4:5]
 colnames(data_AA_Norm_Trim) <- c("AA_Y_NORM", "AA_GT_NORM")
 ```
 
-## COMBINE THE DATASETS TO OBTAIN FINAL DATAFRAME
+### COMBINE THE DATASETS TO OBTAIN FINAL DATAFRAME
 
 Trimmed datasets are combined to obtain the final data.frame.
 The combined data frame is labeled as data from ROUND2
@@ -167,7 +217,7 @@ colnames(whole_data_R2)[12] <- "Round_ID"
 str(whole_data_R2)
 ```
 
-## IMPORT RESULTS FROM ROUND1
+### IMPORT RESULTS FROM ROUND1
 
 The results from Round1 is already compiled to a .csv file in COMPILED_DATA folder
 **Results 1st Round** : 20190903_CRISPRi_Screen_aa_1st_round.csv
@@ -185,21 +235,21 @@ colnames(whole_data_R1)[12] <- "Round_ID"
 str(whole_data_R1)
 ```
 
-## COMBINE THE DATASETS of ROUND 1 AND 2
+### COMBINE THE DATASETS of ROUND 1 AND 2
 
 ```{r}
 whole_data_CRISPRi_aa <- rbind(whole_data_R1, whole_data_R2)
 ```
 
-# SCAN-O-MATIC PHENOMICS ANALYSIS 
+## SCAN-O-MATIC PHENOMICS ANALYSIS 
 
 In this study most of the downstream analysis was performed using the phenotype Generation_time(GT)
 
-## PURPOSE 2
+### PURPOSE 2
 
 In this session, downstream data processing and statistical analysis of SCAN-O-MATIC raw output will be performed
 
-## ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES
+### ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES
 
 LPI of strain is the difference of its normalized Generation_Time(GT) / Yield(Y) (LSC, see [IMPORT SCAN-O-MATIC RAW DATA]) on acetic acid stress plate to the basal condition. It gives a **RELATIVE** estimate of how a strain performed under acetic acid stress relative to the basal condition.   
 
@@ -212,7 +262,7 @@ colnames(whole_data_CRISPRi_aa)[21] <- "LPI_Y"
 colnames(whole_data_CRISPRi_aa)[22] <- "LPI_GT"
 ```
 
-## PERFORM PLATE-WISE BATCH CORRECTION
+### PERFORM PLATE-WISE BATCH CORRECTION
 
 Plate-wise batch correction was conducted by subtracting the median of LSC GT values of all the individual colonies on a plate from the individual LSC GT values of the colonies growing on that plate. 
 
@@ -292,7 +342,7 @@ whole_data_CRISPRi_aa_corrected[which(whole_data_CRISPRi_aa_corrected$SOURCEPLAT
 }
 ```
 
-## ESTIMATE THE BATCH CORRECTED LOG PHENOTYPIC INDEX (LPI) VALUES
+### ESTIMATE THE BATCH CORRECTED LOG PHENOTYPIC INDEX (LPI) VALUES
 
 Estimate the corrected LPI values (see [ESTIMATE THE LOG PHENOTYPIC INDEX (LPI) VALUES]) based on the corrected LSC values
 
@@ -308,7 +358,7 @@ whole_data_CRISPRi_aa_corrected[, 27] <- whole_data_CRISPRi_aa_corrected[, 25] -
 whole_data_CRISPRi_aa_corrected[, 28] <- whole_data_CRISPRi_aa_corrected[, 26] - whole_data_CRISPRi_aa_corrected[, 24] 
 ```
 
-## SETTING THE NAMES OF THE NEW COLUMNS
+### SETTING THE NAMES OF THE NEW COLUMNS
 
 ```{r}
 colnm <- colnames(whole_data_CRISPRi_aa)[17:22]
@@ -317,7 +367,7 @@ colnames(whole_data_CRISPRi_aa_corrected)[23:28] <- colnm
 str(whole_data_CRISPRi_aa_corrected)
 ```
 
-## EXTRACT ONLY THE BATCH CORRECTED COLUMNS
+### EXTRACT ONLY THE BATCH CORRECTED COLUMNS
 
 ```{r}
 whole_data_CRISPRi_aa_2 <- whole_data_CRISPRi_aa_corrected[, c(1:16, 23:28)]
@@ -325,23 +375,23 @@ colnames(whole_data_CRISPRi_aa_2)[17:22] <- colnames(whole_data_CRISPRi_aa)[17:2
 str(whole_data_CRISPRi_aa_2)
 ```
 
-## CONSTRUCT A NEW DATA STRUCTURE
+### CONSTRUCT A NEW DATA STRUCTURE
 
 Construct a new data structure where data from each strain (have a unique guide-RNA) is in a separate row and the replicates from first and second round are side by side. Add also the mean, median and standard deviation statistics for each phenotype  
 
-### REMOVE ROWS WITH SPATIAL CONTROL STRAIN DATA
+#### REMOVE ROWS WITH SPATIAL CONTROL STRAIN DATA
 
 ```{r}
 Data_CRISPRi_aa <- subset(whole_data_CRISPRi_aa_2, whole_data_CRISPRi_aa_2$gRNA_name!="SP_Ctrl_CC23")
 ```
 
-### CREATE A TABLE OF UNIQUE gRNA
+#### CREATE A TABLE OF UNIQUE gRNA
 
 ```{r}
 df_unique_sgRNA <- data.frame(table(Data_CRISPRi_aa$gRNA_name))
 ```
 
-### ARRANGE THE DATA IN THE DESIRED FORMAT
+#### ARRANGE THE DATA IN THE DESIRED FORMAT
 
 ```{r}
 R1<-vector(mode = "integer", length = 0)
@@ -404,7 +454,7 @@ for(i in 1:n){
 }
 ```
 
-### ASSIGN COLUMN NAMES 
+#### ASSIGN COLUMN NAMES 
 
 Column names are already stored in a text times available in the **COMPILED_DATA** folder. Then store the data.frame under a new name.  
 ```{r}
@@ -414,7 +464,7 @@ Analysis_CRISPRi_aa_Complete <- test2
 str(Analysis_CRISPRi_aa_Complete)
 ```
 
-## PERFORM STATISTICAL ANALYSIS
+### PERFORM STATISTICAL ANALYSIS
 
 Multiple statistical method was applied to identify the best fit statistical model for this dataset. We start with the complete dataset and give it a new name to avoid distorting the original dataset.
 
@@ -423,13 +473,13 @@ Analysis_Final <- Analysis_CRISPRi_aa_Complete
 ```
 
 
-### METHOD 1
+#### METHOD 1
 
 For **METHOD 1**, We hypothesized that the difference between the mean(µ) phenotypic performance of a specific CRISPRi strain (StrainX) in the two independent experimental rounds (n=2) to the mean phenotypic performance of all the CRISPRi strains that falls within the interquartile range (IQR) of the complete dataset would be zero, and any difference within the IQR to be just by chance. 
 
 **Null Hypothesis** : µ(µ~LPI_GT_StrainX_Round1~, µ~LPI_GT_StrainX_Round2~)- µ(InterquartileRange_LPI_GT) = 0
 
-#### RECALCULATION OF SOME PHENOTYPIC PARAMETERS
+##### RECALCULATION OF SOME PHENOTYPIC PARAMETERS
 
 In this method, we estimate the Mean / standard deviation (SD) of the LPI GT of Round 1 and Round 2 separately for each strain. When one/two of the three replicates of a strain in a round returned missing value (i.e. NA), then the mean / SD of LPI GT for that round is calculated by taking average of the non NA replicates. Therefore, excluding the missing values the mean and SD statistics were recalculated. We implemented a if else decision tree for this  
 
@@ -514,11 +564,11 @@ for(i in 1:nrow(Analysis_Final)){
 colnames(Analysis_Final)[89] <- "LPI_GT_MEAN_RND1_2_SD"
 ```
 
-#### EXTRACT ALL LPI GT MEAN DATA POINTS WITHIN INTER-QUARTILE-RANGE (IQR)
+##### EXTRACT ALL LPI GT MEAN DATA POINTS WITHIN INTER-QUARTILE-RANGE (IQR)
 
 BOX PLOT - MEAN RELATIVE GENERATION TIME (LPI GT)
 
-```{r figure1, echo=FALSE, fig.cap="Figure 1: Boxplot of mean relative generation time (LPI GT) for all strains in the library", fig.width=2, fig.height=4}
+```{r figure2, echo=FALSE, fig.cap="Figure 2: Boxplot of mean relative generation time (LPI GT) for all strains in the library", fig.width=2, fig.height=4}
 box_stat_LPI_GT_R1_2_mean <- boxplot(Analysis_Final$LPI_GT_RND1_2_MEAN, cex=0.3)
 ```
 
@@ -539,7 +589,7 @@ Intermediate_50 <- Analysis_Final$LPI_GT_RND1_2_MEAN[which(Analysis_Final$LPI_GT
 summary(Intermediate_50)
 ```
 
-#### ESTIMATE P-VALUE
+##### ESTIMATE P-VALUE
 
 P-value is estimated by Welch two sample two-sided t-test (an adaptation of Student's t-test)
 
@@ -555,7 +605,7 @@ for(i in 1:nrow(Analysis_Final)){
 colnames(Analysis_Final)[90] <- "P_value_M1"
 ```
 
-#### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUE 
+##### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUE 
 
 P-value adjustment by **BENJAMINI-HOCHBERG False Discovery Rate (FDR) method**
 
@@ -566,7 +616,7 @@ Analysis_Final[which(!is.na(Analysis_Final$P_value_M1)), 91] <- p.adjust(Analysi
 colnames(Analysis_Final)[91] <- "P.adjusted_M1"
 ```
 
-#### P-VALUE DISGNOSTICS FOR METHOD1
+##### P-VALUE DISGNOSTICS FOR METHOD1
 
 NUMBER OF SIGNIFICANT STRAINS
 
@@ -579,7 +629,7 @@ length(Analysis_Final$P.adjusted_M1[which(Analysis_Final$P.adjusted_M1<=0.1)])
 
 P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS**
 
-```{r figure2, echo=FALSE, fig.cap="Figure 2: P-value diagnostic by histogram Method 1", fig.width=8, fig.height=8}
+```{r figure3, echo=FALSE, fig.cap="Figure 3: P-value diagnostic by histogram Method 1", fig.width=8, fig.height=8}
 par(mfrow=c(2,2))
 hist(Analysis_Final$P_value_M1,
      breaks = 20,
@@ -615,11 +665,11 @@ hist(Analysis_Final$P.adjusted_M1[which(Analysis_Final$Control.gRNA==1)],
      ylim = c(0, 10))
 ```
 
-#### CONCLUSIONS METHOD 1
+##### CONCLUSIONS METHOD 1
 
 Method 1 was too rigid as n=2. Even the smallest standard deviation between round1 and round2 is making an observation insignificant. This method puts the whole weightage on the variability between round1 and round2, not on the deviation from the mean of intermediate 50%. Therefore statistical method 1 was discarded after careful evaluation. 
 
-### METHOD 2
+#### METHOD 2
 
 For **METHOD 2**, We hypothesized that the difference between the mean(µ) phenotypic performance (LPI GT) of a specific CRISPRi strain (StrainX) in a independent experimental round (each has three technical replicates, i.e. n=3) to the mean phenotypic performance of all the replicates of the CRISPRi control strains (with gRNA targeting no genetic locus in *S. cerevisiae*) in that respective screening round would be zero, and any difference within the CRISPRi control strain phenotypic performance range (LPI GT range) to be just by chance. 
 
@@ -634,7 +684,7 @@ Analysis_Final_2 <- Analysis_Final
 str(Analysis_Final_2)
 ```
 
-#### EXTRACT CRISPRi CONTROL STRAINS DATA
+##### EXTRACT CRISPRi CONTROL STRAINS DATA
 
 Extract the CRISPRi-control strains LPI GT data from ROUND1 and ROUND2, respectively and store the output in two different vectors.
 
@@ -654,7 +704,7 @@ CRISPRi_Ctrl_Round2 <- whole_data_CRISPRi_aa_2$LPI_GT[which(whole_data_CRISPRi_a
 summary(CRISPRi_Ctrl_Round2)
 ``` 
 
-#### ESTIMATE P-VALUES FOR ROUND 1 AND 2
+##### ESTIMATE P-VALUES FOR ROUND 1 AND 2
 
 P-value is estimated by Welch two sample two-sided t-test (an adaptation of Student's t-test)
 
@@ -678,7 +728,7 @@ for(i in 1:nrow(Analysis_Final_2)){
 colnames(Analysis_Final_2)[92:93] <- c("P_value_RND1_M2", "P_value_RND2_M2")
 ```
 
-#### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUES FOR ROUND 1 AND 2
+##### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUES FOR ROUND 1 AND 2
 
 P-value adjustment by **BENJAMINI-HOCHBERG False Discovery Rate (FDR) method**
 
@@ -694,7 +744,7 @@ Analysis_Final_2[which(!is.na(Analysis_Final_2$P_value_RND2_M2)), 95] <- p.adjus
 colnames(Analysis_Final_2)[94:95] <- c("P.adjusted_RND1_M2", "P.adjusted_RND2_M2")
 ```
 
-#### P-VALUE DISGNOSTICS FOR METHOD 2 : ROUND1
+##### P-VALUE DISGNOSTICS FOR METHOD 2 : ROUND1
 
 NUMBER OF SIGNIFICANT STRAINS
 
@@ -707,7 +757,7 @@ length(Analysis_Final_2$P.adjusted_RND1_M2[which(Analysis_Final_2$P.adjusted_RND
 
 P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** ROUND 1
 
-```{r figure3, echo=FALSE, fig.cap="Figure 3: P-value diagnostic by histogram, Method 2, Round 1", fig.width=8, fig.height=8}
+```{r figure4, echo=FALSE, fig.cap="Figure 4: P-value diagnostic by histogram, Method 2, Round 1", fig.width=8, fig.height=8}
 par(mfrow=c(2,2))
 hist(Analysis_Final_2$P_value_RND1_M2,
      breaks = 20,
@@ -739,7 +789,7 @@ hist(Analysis_Final_2$P.adjusted_RND1_M2[which(Analysis_Final_2$Control.gRNA==1)
      ylim = c(0, 10))
 ```
 
-#### P-VALUE DISGNOSTICS FOR METHOD 2 : ROUND2
+##### P-VALUE DISGNOSTICS FOR METHOD 2 : ROUND2
 
 NUMBER OF SIGNIFICANT STRAINS
 
@@ -752,7 +802,7 @@ length(Analysis_Final_2$P.adjusted_RND2_M2[which(Analysis_Final_2$P.adjusted_RND
 
 P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** ROUND 2
 
-```{r figure4, echo=FALSE, fig.cap="Figure 4: P-value diagnostic by histogram, Method 2, Round 2", fig.width=8, fig.height=8}
+```{r figure5, echo=FALSE, fig.cap="Figure 5: P-value diagnostic by histogram, Method 2, Round 2", fig.width=8, fig.height=8}
 par(mfrow=c(2,2))
 hist(Analysis_Final_2$P_value_RND2_M2,
      breaks = 20,
@@ -784,11 +834,11 @@ hist(Analysis_Final_2$P.adjusted_RND2_M2[which(Analysis_Final_2$Control.gRNA==1)
      ylim = c(0, 10))
 ```
 
-#### CONCLUSIONS METHOD 2
+##### CONCLUSIONS METHOD 2
 
 It is a robust statistical method. However, one of the major problem with this method is setting different thresholds for p.adjusted values and LPI GT Mean for each round.
 
-### METHOD 3 AND METHOD 4
+#### METHOD 3 AND METHOD 4
 
 For **METHOD 3**, We hypothesized that the difference between the mean(µ) phenotypic performance of a specific CRISPRi strain (StrainX) considering all technical replicates (3 in each) in the two independent experimental rounds (i.e. n=6) to the mean phenotypic performance of all the CRISPRi strains that falls within the interquartile range (IQR) of the complete dataset would be zero, and any difference within the IQR to be just by chance. 
 
@@ -806,13 +856,13 @@ To ensure that we don't distort the original dataset we clone the Analysis datas
 Analysis_Final_3 <- Analysis_Final_2
 ```
 
-#### EXTRACT ALL LPI GT DATA POINTS (INCLUDING ALL REPLICATES) WITHIN INTER-QUARTILE-RANGE (IQR)
+##### EXTRACT ALL LPI GT DATA POINTS (INCLUDING ALL REPLICATES) WITHIN INTER-QUARTILE-RANGE (IQR)
 
 Since we will consider all replicates this time, we will compare it with all replicates (NOT MEAN) that falls within IQR for Method 3. For this purpose, we extract the IQR dataset including all the replicate data for each strain. We will use the data.frame **Data_CRISPRi_aa** (see, [REMOVE ROWS WITH SPATIAL CONTROL STRAIN DATA]) to extract this numeric vector.  
 
 BOX PLOT - RELATIVE GENERATION TIME (LPI GT)
 
-```{r figure5, echo=FALSE, fig.cap="Figure 5: Boxplot of relative generation time (LPI GT) for all strains including all replicates in the library", fig.width=2, fig.height=4}
+```{r figure6, echo=FALSE, fig.cap="Figure 6: Boxplot of relative generation time (LPI GT) for all strains including all replicates in the library", fig.width=2, fig.height=4}
 boxplot_stat_LPI_GT <- boxplot(Data_CRISPRi_aa$LPI_GT, cex = 0.3)
 ```
 
@@ -833,7 +883,7 @@ Intermediate_50_M3 <- Data_CRISPRi_aa$LPI_GT[which(Data_CRISPRi_aa$LPI_GT >=-0.0
 summary(Intermediate_50_M3)
 ```
 
-#### EXTRACT CRISPRi CONTROL STRAINS DATA (ALL REPLICATES)
+##### EXTRACT CRISPRi CONTROL STRAINS DATA (ALL REPLICATES)
 
 This time we extract all the replicate data (non the mean) of each of the CRISPRi control strains for the Method 4
 
@@ -842,7 +892,7 @@ Crispri_control_M4 <- Data_CRISPRi_aa$LPI_GT[which(Data_CRISPRi_aa$Control.gRNA=
 summary(Crispri_control_M4)
 ```
 
-#### RECALCULATE THE LSC GT MEAN AT BASAL CONDITION AND LPI GT MEAN OF EACH STRAIN
+##### RECALCULATE THE LSC GT MEAN AT BASAL CONDITION AND LPI GT MEAN OF EACH STRAIN
 
 We recalculate the above parameter taking all six replicates into account and excluding the missing values. For this purpose we use a if else decision tree. This means we get a LSC GT / LPI GT value if at-least 1 replicate managed to grow at a particular condition. Else it will return a missing value or NA
 
@@ -864,7 +914,7 @@ for(i in 1:nrow(Analysis_Final_3)){
 colnames(Analysis_Final_3)[96:99] <- c("CTRL_GT_Mean_all", "n_CTRL", "LPI_GT_Mean_all", "n_LPI")
 ```
 
-#### ESTIMATE P-VALUES FOR METHOD 3 AND 4
+##### ESTIMATE P-VALUES FOR METHOD 3 AND 4
 
 P-value is estimated by Welch two sample two-sided t-test (an adaptation of Student's t-test)
 
@@ -885,7 +935,7 @@ for(i in 1:nrow(Analysis_Final_3)){
 colnames(Analysis_Final_3)[100:101] <- c("P.value_M3", "P.value_M4")
 ```
 
-#### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUES FOR METHOD 3 AND 4
+##### FALSE DISCOVERY RATE ADJUSTMENT OF P-VALUES FOR METHOD 3 AND 4
 
 P-value adjustment by **BENJAMINI-HOCHBERG False Discovery Rate (FDR) method**
 
@@ -899,7 +949,7 @@ Analysis_Final_3[which(!is.na(Analysis_Final_3$P.value_M4)), 103] <- p.adjust(An
 colnames(Analysis_Final_3)[102:103] <- c("P.adjusted_M3", "P.adjusted_M4")
 ```
 
-#### P-VALUE DISGNOSTICS FOR METHOD 3
+##### P-VALUE DISGNOSTICS FOR METHOD 3
 
 NUMBER OF SIGNIFICANT STRAINS
 
@@ -912,7 +962,7 @@ length(Analysis_Final_3$P.adjusted_M3[which(Analysis_Final_3$P.adjusted_M3<=0.1)
 
 P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** 
 
-```{r figure6, echo=FALSE, fig.cap="Figure 6 (Fig S9 in Manuscript): P-value diagnostic by histogram, Method 3", fig.width=8, fig.height=8}
+```{r figure7, echo=FALSE, fig.cap="Figure 7 (Fig S11 in Manuscript): P-value diagnostic by histogram, Method 3", fig.width=8, fig.height=8}
 par(mfrow=c(2,2))
 hist(Analysis_Final_3$P.value_M3,
      breaks = 20,
@@ -952,7 +1002,7 @@ hist(Analysis_Final_3$P.adjusted_M3[which(Analysis_Final_3$Control.gRNA==1)],
      cex.lab= 1.5)
 ```
 
-#### P-VALUE DISGNOSTICS FOR METHOD 4
+##### P-VALUE DISGNOSTICS FOR METHOD 4
 
 NUMBER OF SIGNIFICANT STRAINS
 
@@ -965,7 +1015,7 @@ length(Analysis_Final_3$P.adjusted_M4[which(Analysis_Final_3$P.adjusted_M4<=0.1)
 
 P-VALUE DIAGNOSTICS BY **HISTOGRAM ANALYSIS** 
 
-```{r figure7, echo=FALSE, fig.cap="Figure 7: P-value diagnostic by histogram, Method 4", fig.width=8, fig.height=8}
+```{r figure8, echo=FALSE, fig.cap="Figure 8: P-value diagnostic by histogram, Method 4", fig.width=8, fig.height=8}
 par(mfrow=c(2,2))
 hist(Analysis_Final_3$P.value_M4,
      breaks = 20,
@@ -1005,19 +1055,19 @@ hist(Analysis_Final_3$P.adjusted_M4[which(Analysis_Final_3$Control.gRNA==1)],
      cex.lab= 1.5)
 ```
 
-#### CONCLUSIONS METHOD 3
+##### CONCLUSIONS METHOD 3
 
 P.values generated by Method 3 can be corrected efficiently using the FDR method and after the correction the P.adjusted values have nearly equal distribution, which is indicative of a robust statistical outcome. Therefore Method 3 is a good statistical method for this dataset.
 
-#### CONCLUSIONS METHOD 4
+##### CONCLUSIONS METHOD 4
 
 Although Method 4 is effective to identify candidates deviated most from the CRISPRi control means, but the FDR method is less effective on the generated P.value. Therefore, less efficient for the current dataset. Moreover, the CRISPRi control strains for some reason consistently displayed a slower growth under acetic acid compared to the mean of the population. This resulted a bias for method 4 in candidate selection. 
 
-### FINAL CONCLUSION FOR STATISTICAL ANALYSIS
+#### FINAL CONCLUSION FOR STATISTICAL ANALYSIS
 
 Out of the 4 statistical methods evaluated, **METHOD 3** was the most promising method to identify the significant candidates. Therefore, for this study we considered the results of statistical Method 3 for further downstream analysis. 
 
-## SETTING THE STATISTICAL AND EFFECTSIZE THRESHOLD
+### SETTING THE STATISTICAL AND EFFECTSIZE THRESHOLD
 
 Number of strains with **Adjusted P-value ≤ 0.1** 
 
@@ -1044,7 +1094,7 @@ min(Analysis_Final_3$LPI_GT_Mean_all[which(Analysis_Final_3$Control.gRNA==1)])
 
 Therefore, any strain that have an **adjusted P-value ≤ 0.1** AND **mean LPI GT < -0.03680838** will be considered **TOLERANT to acetic acid** 
 
-## EXTRACT THE ACETIC ACID TOLERANT STRAINS
+### EXTRACT THE ACETIC ACID TOLERANT STRAINS
 
 * Extract the row index that satisfy the statistical (adjusted P-value ≤ 0.1) and effect size (mean LPI GT < -0.03680838) criterion for acetic acid tolerant candidates
 
@@ -1063,7 +1113,7 @@ Fit_M3_complete <- Fit_M3_complete[order(Fit_M3_complete$LPI_GT_Mean_all, decrea
 str(Fit_M3_complete)
 ```
 
-## EXTRACT ALL CRISPRi TARGET GENES THAT INDUCED ACETIC ACID TOLERANCE
+### EXTRACT ALL CRISPRi TARGET GENES THAT INDUCED ACETIC ACID TOLERANCE
 
 * Extract description of all genes (1617 genes) involved in this study from Saccharomyces Genome Database (SGD). A .csv file for this purpose is already exist in the **COMPILED_DATA** folder 
 
@@ -1088,7 +1138,7 @@ nrow(Fit_all_M3_description)
 
 This gives **370** CRISPRi target genes that induced acetic acid **TOLERANCE**
 
-## EXTRACT THE ACETIC ACID SENSITIVE STRAINS 
+### EXTRACT THE ACETIC ACID SENSITIVE STRAINS 
 
 * First identify strains that grew well in Basal condition but did not grow or less than three (out of six) replicates managed to grow under acetic acid stress. We will call these strains as **SUPER SENSITIVE**. P-value estimation for these strains were not possible or was not performed as n was ≤ 2. 
 
@@ -1124,7 +1174,7 @@ nrow(Sen_M3_complete)
 
 In **TOTAL**, 481+17 = **498** strains displayed acetic acid **SENSITIVITY**
   
-## EXTRACT ALL CRISPRi TARGET GENES THAT INDUCED ACETIC ACID SENSITIVITY
+### EXTRACT ALL CRISPRi TARGET GENES THAT INDUCED ACETIC ACID SENSITIVITY
 
 * Prepare a data.frame with descriptions of CRISPRi target genes that induced acetic acid **sensitivity**. This file also include how many gRNAs per target gene induced the acetic acid sensitivity.
 
@@ -1138,7 +1188,7 @@ nrow(Sen_all_M3_description)
 
 This gives **367** CRISPRi target genes that induced acetic acid **SENSITIVITY**
 
-## GO ANALYSIS
+### GO ANALYSIS
 
 **Data preparation** 
 
@@ -1162,11 +1212,11 @@ str(Sen_unique_M3_SGD_ID)
 
 Perform GO analysis with the above gene identifier sets in Saccharomyces genome database [link](https://www.yeastgenome.org/goTermFinder) 
 
-## DATA VISUALIZATION 
+### DATA VISUALIZATION 
 
 Here we present the SCAN-O-MATIC data in graph and charts. 
 
-### PREREQUISITE PACKAGES
+#### PREREQUISITE PACKAGES
 
 INSTALL
 
@@ -1175,11 +1225,87 @@ INSTALL
 * **pheatmap**
 * **wordcloud**
 
-### SCATTER PLOT : CORRELATION BETWEEN LPI GT MEAN ROUND 1 and LPI GT MEAN ROUND 2
+#### GROWTH CURVES
+
+Plot some representative growth curves form scan-o-matic. 
+
+The growth curve data was generated by running the flatten_curves_2.py script (obtained from Simon Stenberg, Gothenburg University, Sweden and available on request) in the scan-o-matic analysis folder generated within the project folder. The program will then generate a **curves_flat.csv** file in that analysis folder. For the representative growth curve, we generate this curves_flat.csv for the project that have the growth output of plate number 7 and 8 at Basal and acetic acid condition in the screening Round 1. The file is then renamed as **Data_for_Representative_GC_SOM.csv** and available in our **COMPILED_DATA** folder. 
+
+* **Import data**
+
+```{r}
+Growth_curve_data <- read.csv("COMPILED_DATA/Data_for_Representative_GC_SOM.csv", sep = "\t", header = TRUE)
+str(Growth_curve_data)
+```
+
+* **Read the data and prepare** : Each scan-o-matic scanner can accommodate 4 plates. In this case the plates are arranged as below,  
+
+**Plate0**: Plate7_Basal
+**Plate1**: Plate8_Basal
+**Plate2**: Plate7_AceticAcid
+**Plate3**: Plate8_AceticAcid
+
+Each plate have 1536 colonies i.e. 384 strains x 3 replicates + 384 spatial control. 
+
+The **FIRST COLUMN** is just the **Image number** and 0 being the first image.
+
+Now there are 1536 * 4 = 6144 more columns after the first column. i.e. each colony data is a column. The naming format is as below;
+
+**X[Plate_number]_[row_number]_[column_number]**
+
+All numbers are starting from zero. Therefore, plate_numbers will be ranging from 0 to 3. Each 1536 plate has 32 rows and 48 column. Therefore the row numbers will be ranging from 0 to 31 and column numbers from 0 to 47. 
+
+Now we extract the data of only 4 strains from the entire dataset. i.e. one strain that displayed acetic acid sensitivity, a strain with slight acetic acid tolerance, and finally one control strain. The selected strains and the respective positions are obtained from the raw dataset **whole_data_CRISPRi_aa**
+
+|Strain Characteristics |Strain name     |Plate Number |Location1536  | Colname Basal  | Colname acetic |
+------------------------|----------------|-------------|--------------|----------------|----------------|
+|Acetic acid Tolerant   |"POL2-NRg-1"    |Plate7       |U4            |X0_20_3         |X2_20_3         |
+|Acetic acid sensitive  |"RRP15-TRg-4"   |Plate7       |E4            |X0_4_3          |X2_4_3          |
+|Control strain1        |"CC23"          |Plate8       |AE23          |X1_30_22        |X3_30_22        |
+
+Therefore extract the above columns data and also the first column with the image number and save it in a new variable. Then change the column names to the [gRNA]_[condition] format
+
+```{r}
+Growth_curve_data_selected <- Growth_curve_data[, c("X", "X0_20_3", "X2_20_3", "X0_4_3", "X2_4_3", "X1_30_22", "X3_30_22")]
+colnames(Growth_curve_data_selected) <- c("Time", "POL2-NRg-1_Basal", "POL2-NRg-1_Acetic", "RRP15-TRg-4_Basal", "RRP15-TRg-4_Acetic", "CC23_Basal", "CC23_Acetic")
+str(Growth_curve_data_selected)
+```
+
+Images are automatically taken 20 minutes apart. Therefore, image number*20/60 will give us the time point in hour. Therefore, We will convert the first column in time point. 
+
+```{r}
+Growth_curve_data_selected[, 1] <- Growth_curve_data_selected[, 1]*20/60
+```
+
+Convert the data.frame in long format and save in a new variable
+
+```{r}
+library(reshape)
+Growth_curve_data_selected_long <- reshape(data=Growth_curve_data_selected, idvar="Time",
+                                     varying = colnames(Growth_curve_data_selected)[2:7],
+                                     v.name=c("Population_size"),
+                                     new.row.names = 1:30000,
+                                     direction="long",
+                                     timevar = "gRNA_condition",
+                                     times = colnames(Growth_curve_data_selected)[2:7])
+str(Growth_curve_data_selected_long)
+```
+
+* Plot the graph
+
+```{r figure9, echo=FALSE, fig.cap="Figure 9 (Part of Fig. 1 in Manuscript): Representative growth curves", fig.width=8, fig.height=8}
+library(ggplot2)
+ggplot(Growth_curve_data_selected_long, aes(x=Time, y=Population_size, color=gRNA_condition)) +
+    geom_smooth() +
+    scale_y_continuous(trans='log10') + 
+  theme_classic()
+```
+
+#### SCATTER PLOT : CORRELATION BETWEEN LPI GT MEAN ROUND 1 and LPI GT MEAN ROUND 2
 
 Scatterplot to display reproducibility of the two scan-o-matic screenings. The mean of the three LPI_GT replicates of each strain is plotted against X and Y axis for round1 and round2, respectively. The data of the CRISPRi control strains are indicated with green dots, acetic acid sensitive strains are indicated with red dots and acetic acid tolerant strains are indicated with blue dots. Data of all other strains are indicated with black dots. 
 
-```{r figure8, echo=FALSE, fig.cap="Figure 8 (Fig. 2A in Manuscript): DATA REPRODUCIBILITY", fig.width=8, fig.height=8}
+```{r figure10, echo=FALSE, fig.cap="Figure 10 (Fig. 2A in Manuscript): DATA REPRODUCIBILITY", fig.width=8, fig.height=8}
 plot(Analysis_Final_3$LPI_GT_RND1_MEAN, Analysis_Final_3$LPI_GT_RND2_MEAN, 
      pch = 16, 
      cex = 0.5, 
@@ -1233,11 +1359,11 @@ cor(Analysis_Final_3$LPI_GT_RND1_MEAN[c(candidate_padj_0.1_SEN_M3, candidate_pad
 
 The linear regression fitting model (**red dashed line**) of the acetic acid sensitive and tolerant strain's data gave a R^2^ value of **0.79** and Pearson correlation coefficient **r= 0.89** .  
 
-### SCATTER PLOT LSC GT (IN BASAL CONDITION) VS LPI_GT
+#### SCATTER PLOT LSC GT (IN BASAL CONDITION) VS LPI_GT
 
 Scatterplot showing the relative generation time of each CRISPRi strains in basal condition in X-axis [Log Strain Co-efficient (LSC) of generation time (GT)] and relative generation time under acetic acid stress condition (150mM Acetic acid) compared to control condition in Y-axis (LPI_GT). Each point indicates the mean of all the replicates (n=6). For some acetic acid sensitive strains (198), the number of replicates are between 3-5 (n=3 for 135; n=4 for 16; n=5 for 47) as not all replicates managed to grow on the acetic acid stress condition. The data of the CRISPRi control strains are indicated with the green dots. Based on our statistical analysis, strains that have FDR adjusted P-values ≤ 0.1 and mean LPI_GT > 0.165 (maximum LPI_GT of CRISPRi control strains) are designated as acetic acid sensitive strains ( represented by red dots). Strains that have FDR adjusted P-values ≤ 0.1 and mean LPI_GT < -0.037 (minimum LPI_GT of CRISPRi control strains) are designated as acetic acid tolerant(blue dots). The LPI_GT threshold is indicated with a gray dashed line. Data of strains that falls outside the adjusted P-value and LPI_GT threshold, are indicated with black dots.
 
-````{r figure9, echo=FALSE, fig.cap="Figure 9 (Fig. 2C in Manuscript): Normalized generation time (LSC GT) of strains in Basal condition vs Relative generation time (LPI GT) of strains in acetic acid condition compared to basal condition", fig.width=8, fig.height=8}
+````{r figure11, echo=FALSE, fig.cap="Figure 11 (Fig. 2C in Manuscript): Normalized generation time (LSC GT) of strains in Basal condition vs Relative generation time (LPI GT) of strains in acetic acid condition compared to basal condition", fig.width=8, fig.height=8}
 plot(Analysis_Final_3$CTRL_GT_Mean_all, Analysis_Final_3$LPI_GT_Mean_all, 
      pch = 16, 
      cex = 0.5, 
@@ -1283,7 +1409,7 @@ axis(side = 1,
 abline(h=c(-0.03680838, 0.165662), col="gray", lty=2, lwd=2)
 ```
 
-### VIOLIN PLOT
+#### VIOLIN PLOT
 
 Violin-plots display the spread and the distribution of the LPI GT data for all CRISPRi strains (ALL), and LPI_GT values of CRISPRi control strains
 
@@ -1303,7 +1429,7 @@ Violin_LPI_Mean_M3[(R+1):(R+R2), 2] <- "CONTROL"
 colnames(Violin_LPI_Mean_M3)[1:2] <- c("Mean", "Label")
 ```
 
-```{r figure10, echo=FALSE, fig.cap="Figure 10 (Fig. 2C INSET, in Manuscript): Violin-plots display the spread and the distribution of the LPI GT data", fig.width=5, fig.height=7}
+```{r figure12, echo=FALSE, fig.cap="Figure 12 (Fig. 2C INSET, in Manuscript): Violin-plots display the spread and the distribution of the LPI GT data", fig.width=5, fig.height=7}
 library(ggplot2)
 p_gg_M3 <- ggplot(Violin_LPI_Mean_M3, aes(x=Label, y=Mean, fill=Label)) + 
   geom_violin(trim=FALSE) + 
@@ -1313,13 +1439,13 @@ p_gg_M3 <- ggplot(Violin_LPI_Mean_M3, aes(x=Label, y=Mean, fill=Label)) +
 p_gg_M3 + theme_classic()
 ```
 
-### WORDCLOUD
+#### WORDCLOUD
 
 We display gene names that are highly represented within the fit and the sensitive strains, i.e. CRISPRi targeting of these genes by multiple gRNA displayed the tolerant / sensitive phenotype. The CRISPRi repression of a gene vs the obtained phenotype relationship is more reliable for those highly represented genes. 
 
 * WORD CLOUD for the acetic acid **TOLERANT** strains
 
-```{r figure11, echo=FALSE, fig.cap="Figure 11: Wordcloud for CRISPRi gene targets of acetic acid tolerant strains", fig.width=10, fig.height=10}
+```{r figure13, echo=FALSE, fig.cap="Figure 13: Wordcloud for CRISPRi gene targets of acetic acid tolerant strains", fig.width=10, fig.height=10}
 library("wordcloud")
 wordcloud(words = Fit_all_M3$Var1, 
           freq = Fit_all_M3$Freq, 
@@ -1330,7 +1456,7 @@ wordcloud(words = Fit_all_M3$Var1,
 
 * WORD CLOUD for the acetic acid **SENSITIVE** strains
 
-```{r figure12, echo=FALSE, fig.cap="Figure 12: Wordcloud for CRISPRi gene targets of acetic acid sensitive strains", fig.width=10, fig.height=10}
+```{r figure14, echo=FALSE, fig.cap="Figure 14: Wordcloud for CRISPRi gene targets of acetic acid sensitive strains", fig.width=10, fig.height=10}
 library("wordcloud")
 wordcloud(words = Sen_all_M3$Var1, 
           freq = Sen_all_M3$Freq, 
@@ -1339,9 +1465,9 @@ wordcloud(words = Sen_all_M3$Var1,
           colors=c("black", "red", "dark green", "blue"))
 ```
 
-### HISTOGRAM
+#### HISTOGRAM
 
-#### **STRAINS/GENE** AND **gRNA DISTANCE FROM TSS**
+##### **STRAINS/GENE** AND **gRNA DISTANCE FROM TSS**
 
 First assigning rownames as the gRNA names in the **Analysis_Final_3** data.frame
 
@@ -1388,7 +1514,7 @@ gRNA_Freq <- data.frame(sort(table(Analysis_Final_3$GENE), decreasing = TRUE))
 
 Plot the graphs
 
-```{r figure13, echo=FALSE, fig.cap="Figure 13: Histogram of number of strains per target gene in the CRISPRi library (TOP PANEL). Histogram of gRNA distance from Transcription starting site of the Genes (BOTTOM PANEL)", fig.width=4, fig.height=8}
+```{r figure15, echo=FALSE, fig.cap="Figure 15: (Figure S7 in Manuscript) Histogram of number of strains per target gene in the CRISPRi library (TOP PANEL). Histogram of gRNA distance from Transcription starting site of the Genes (BOTTOM PANEL)", fig.width=4, fig.height=8}
 par(mfrow=c(2,1))
 hist(gRNA_Freq$Freq,
      breaks = 20,
@@ -1408,7 +1534,7 @@ hist(Analysis_Final_3$Midpoint_TSS_dist,
      main= "Frequency of gRNA distance from TSS")
 ```
 
-#### NORMALIZED GENERATION TIME (LSC GT) IN BASAL AND UNDER ACETIC ACID STRESS
+##### NORMALIZED GENERATION TIME (LSC GT) IN BASAL AND UNDER ACETIC ACID STRESS
 
 First the LSC GT mean under acetic acid stress was recalculated for all the strains excluding the missing values
 
@@ -1423,7 +1549,7 @@ for(i in 1:nrow(Analysis_Final_3)){
 
 Plot the histogram
 
-```{r figure14, echo=FALSE, fig.cap="Figure 14 (fig. 2B in manuscript): Histogram to display strains growth in Basal condition (TOP PANEL). Histogram to display strains growth at 150mM of acetic acid (BOTTOM PANEL)", fig.width=5, fig.height=10}
+```{r figure16, echo=FALSE, fig.cap="Figure 16 (fig. 2B in manuscript): Histogram to display strains growth in Basal condition (TOP PANEL). Histogram to display strains growth at 150mM of acetic acid (BOTTOM PANEL)", fig.width=5, fig.height=10}
 par(mfrow=c(2,1))
 hist(Analysis_Final_3$CTRL_GT_Mean_all,
      breaks = 25,
@@ -1544,7 +1670,7 @@ for(i in 1:length(name_gRNA_atc_titer)){
 
 * PLOT NORMALIZED LAG, GENERATION TIME AND YIELD
 
-```{r figure15, echo=FALSE, message=FALSE, fig.cap="Figure 15 (fig. S1B in manuscript): Scatter plot to display ATC dosage response on Lag phase", fig.width=6, fig.height=4}
+```{r figure17, echo=FALSE, message=FALSE, fig.cap="Figure 17 (fig. S8B in manuscript): Scatter plot to display ATC dosage response on Lag phase", fig.width=6, fig.height=4}
 library(ggplot2)
 plt1 <- ggplot(Atc_titer_subset, aes(x=Atc_concentration, y=Mean_LSC_Lag, group=gRNA_name, color=gRNA_name)) + 
   geom_pointrange(aes(ymin=Mean_LSC_Lag-SD_LSC_Lag, ymax=Mean_LSC_Lag+SD_LSC_Lag)) +
@@ -1561,7 +1687,7 @@ plt1 <- ggplot(Atc_titer_subset, aes(x=Atc_concentration, y=Mean_LSC_Lag, group=
 suppressWarnings(print(plt1))
 ```
 
-```{r figure16, echo=FALSE, fig.cap="Figure 16 (fig. S1B in manuscript): Scatter plot to display ATC dosage response on Generation time", fig.width=6, fig.height=4}
+```{r figure18, echo=FALSE, fig.cap="Figure 18 (fig. S8B in manuscript): Scatter plot to display ATC dosage response on Generation time", fig.width=6, fig.height=4}
 plt2 <- ggplot(Atc_titer_subset, aes(x=Atc_concentration, y=Mean_LSC_GT, group=gRNA_name, color=gRNA_name)) + 
   geom_pointrange(aes(ymin=Mean_LSC_GT-SD_LSC_GT, ymax=Mean_LSC_GT+SD_LSC_GT)) +
   labs(title="Normalized Generation time at different ATc concentration", x="ATc (ug/ml)", y = "LSC GT")+
@@ -1577,7 +1703,7 @@ plt2 <- ggplot(Atc_titer_subset, aes(x=Atc_concentration, y=Mean_LSC_GT, group=g
 suppressWarnings(print(plt2))
 ```
 
-```{r figure17, echo=FALSE, message=FALSE, fig.cap="Figure 17 (fig. S1B in manuscript): Scatter plot to display ATC dosage response on Yield", fig.width=6, fig.height=4}
+```{r figure19, echo=FALSE, message=FALSE, fig.cap="Figure 19 (fig. S8B in manuscript): Scatter plot to display ATC dosage response on Yield", fig.width=6, fig.height=4}
 plt3 <- ggplot(Atc_titer_subset, aes(x=Atc_concentration, y=Mean_LSC_Yield, group=gRNA_name, color=gRNA_name)) + 
   geom_pointrange(aes(ymin=Mean_LSC_Yield-SD_LSC_Yield, ymax=Mean_LSC_Yield+SD_LSC_Yield)) +
   labs(title="Normalized Yield at different ATc concentration", x="ATc (ug/ml)", y = "LSC Yield")+
