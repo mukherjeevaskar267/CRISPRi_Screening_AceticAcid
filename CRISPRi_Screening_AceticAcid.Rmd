@@ -1767,12 +1767,6 @@ bot_top_50_strains <- bot_top_50$gRNA_name
 validation_strains <- as.character(union(bot_top_50_strains, select_strains))
 ```
 
-* extracting the data of these strains from the analysis dataset
-
-```{r}
-validation_strains_data <- Analysis_Final_3[validation_strains, ]
-```
-
 These strains were extracted from the main collection and were arrayed in **two 96 well microtiter plate**. The plate layout is available in the **"/RAW_DATA/BS_VAL_SCR/STRAIN_MAP_VAL_EXP"** folder
 
 **Plate layout** : Plate_layout_Liquid_Growth_Exp.xlsx
@@ -1784,7 +1778,7 @@ The strains were grown in liquid YNB medium (basal condition) and in liquid YNB 
 The raw data of bioscreen runs are saved in the **BS_VAL_SCR** folder within the **RAW_DATA** folder. The raw files are organized in the following format
 20200511_VAL_PLATE[**microtiter plate number**].[**Experiment number**]_CTRL_AA[**acetic acid concentration in mM**]_Trimmed
 
-The **1-100 well** in each raw file is the growth data of the strains in a plate at **basal condition**. From **101-200 well** have the data of those strains at acetic acid concentration as indicated in the raw file name. The the wells can be linked to the strain names (gRNA names) using the **Plate layout** file as mentioned above in [VALIDATION DATA ANALYSIS]. 
+In each **raw file** the growth data of the strain in the **basal condition** is presented in **1-100 well** and in the same strain order the growth data under acetic acid stress (at concentration as indicated in the raw file name) is presented in **101-200 wells**. For each plate, the the wells can be linked to the strain names (gRNA names) using the **Plate layout** file as mentioned above in [VALIDATION DATA ANALYSIS].
 
 For the ease of analysis, the bioscreen raw data was compiled and saved as a .csv file in the COMPILED_DATA folder
 
@@ -1794,7 +1788,10 @@ For the ease of analysis, the bioscreen raw data was compiled and saved as a .cs
 
 ```{r}
 Val_data <- read.csv("COMPILED_DATA/Validation_Bioscreen_data.csv", na.strings = "NaN", header = TRUE)
+str(Val_data)
 ```
+
+The first column of the dataset **Val_data** is **Container.Name** which is ranging from "Well 1" to "Well 200". Therefore, the first 100 rows (Well 1 to well 100) display the data of strains from the **microtiter plate 1** and the next 100 wells (101 - 200) are data of strains from the **microtiter plate 2**
 
 * Transformation of the extracted phenotype in natural logarithm
 
@@ -1988,11 +1985,13 @@ colnames(Val_data)[143:145] <- paste0(c("Mean_", "SD_", "N_"), "LPI_AA125_GT")
 colnames(Val_data)[146:148] <- paste0(c("Mean_", "SD_", "N_"), "LPI_AA125_Yield")
 ```
 
-* Extracting the data of control strains
+### STREAMLINING THE VALIDATION DATASET
 
-The dataset (**Val_data**) until now have the data for all well  
+The dataset **Val_data** until now have 200 rows that include data of 176 selected strains, 7 control strains and blank wells. The 7 control strains were also in both microtiter plates. Therefore, for each control strain, six replicates exists. In this part, we eliminate the blank rows, extract the control strain data and generate a mean data row for each of the control strains and then finally, add it to the dataframe with 176 selected strains. 
 
-#Extracting the data of All dummy control strains
+* Extracting the data of all control strains
+
+```{r}
 
 dCtrl_strains <- c("CC23", "CC14", "CC2", "CC28", "CC30", "CC32", "CC34")
 dCTRL_rows <- vector(mode = "integer", length = 0)
@@ -2003,54 +2002,48 @@ for(i in 1:length(dCtrl_strains)){
   dCTRL_rows <- c(dCTRL_rows, which(Val_data$gRNA_name==dCtrl_strains[i]))
   Val_data_dCTRL <- rbind(Val_data_dCTRL, test)
 }
+```
 
-#Now the dCTRL strains were in both plates. Therefore, we create a new data frame and extract 
-#only the required columns to perform the analysis
-#
+* Now the dCTRL strains were in both plates. Therefore, we create a new data frame and extract only the required columns to perform the analysis. Also we calculate the mean (of all six replicates) and standard deviation statistics.   
+
+```{r}
 m1 <- vector(mode = "numeric", length = 0)
 m2 <- vector(mode = "numeric", length = 0)
 test1 <- data.frame()
 Val_data_dCTRL_F <- data.frame()
 Val_data_dCTRL_F[1:7, 1:3] <- Val_data_dCTRL[c("10", "19", "28", "46", "55", "64", "73"), 2:4]
-
 for (i in 1:length(dCtrl_strains)){
   test1 <- Val_data_dCTRL[which(Val_data_dCTRL$gRNA_name==dCtrl_strains[i]), ]
-  
   #LPI_AA150_Lag
   m1 <- as.numeric(test1[1, c(113, 116, 119)][which(!is.na(test1[1, c(113, 116, 119)]))])
   m2 <- as.numeric(test1[2, c(113, 116, 119)][which(!is.na(test1[2, c(113, 116, 119)]))])
   Val_data_dCTRL_F[i, 4] <- mean(c(m1, m2))
   Val_data_dCTRL_F[i, 5] <- sd(c(m1, m2))
   Val_data_dCTRL_F[i, 6] <- length(c(m1, m2))
-  
   #LPI_AA150_GT
   m1 <- as.numeric(test1[1, c(114, 117, 120)][which(!is.na(test1[1, c(114, 117, 120)]))])
   m2 <- as.numeric(test1[2, c(114, 117, 120)][which(!is.na(test1[2, c(114, 117, 120)]))])
   Val_data_dCTRL_F[i, 7] <- mean(c(m1, m2))
   Val_data_dCTRL_F[i, 8] <- sd(c(m1, m2))
   Val_data_dCTRL_F[i, 9] <- length(c(m1, m2))
-  
   #LPI_AA150_Yield
   m1 <- as.numeric(test1[1, c(115, 118, 121)][which(!is.na(test1[1, c(115, 118, 121)]))])
   m2 <- as.numeric(test1[2, c(115, 118, 121)][which(!is.na(test1[2, c(115, 118, 121)]))])
   Val_data_dCTRL_F[i, 10] <- mean(c(m1, m2))
   Val_data_dCTRL_F[i, 11] <- sd(c(m1, m2))
   Val_data_dCTRL_F[i, 12] <- length(c(m1, m2))
-  
   #LPI_AA125_Lag
   m1 <- as.numeric(test1[1, c(122, 125, 128)][which(!is.na(test1[1, c(122, 125, 128)]))])
   m2 <- as.numeric(test1[2, c(122, 125, 128)][which(!is.na(test1[2, c(122, 125, 128)]))])
   Val_data_dCTRL_F[i, 13] <- mean(c(m1, m2))
   Val_data_dCTRL_F[i, 14] <- sd(c(m1, m2))
   Val_data_dCTRL_F[i, 15] <- length(c(m1, m2))
-  
   #LPI_AA125_GT
   m1 <- as.numeric(test1[1, c(123, 126, 129)][which(!is.na(test1[1, c(123, 126, 129)]))])
   m2 <- as.numeric(test1[2, c(123, 126, 129)][which(!is.na(test1[2, c(123, 126, 129)]))])
   Val_data_dCTRL_F[i, 16] <- mean(c(m1, m2))
   Val_data_dCTRL_F[i, 17] <- sd(c(m1, m2))
   Val_data_dCTRL_F[i, 18] <- length(c(m1, m2))
-  
   #LPI_AA125_GT
   m1 <- as.numeric(test1[1, c(124, 127, 130)][which(!is.na(test1[1, c(124, 127, 130)]))])
   m2 <- as.numeric(test1[2, c(124, 127, 130)][which(!is.na(test1[2, c(124, 127, 130)]))])
@@ -2058,97 +2051,252 @@ for (i in 1:length(dCtrl_strains)){
   Val_data_dCTRL_F[i, 20] <- sd(c(m1, m2))
   Val_data_dCTRL_F[i, 21] <- length(c(m1, m2))
 }
-
 colnames(Val_data_dCTRL_F)[4:6] <- paste0(c("Mean_", "SD_", "N_"), "LPI_AA150_Lag")
 colnames(Val_data_dCTRL_F)[7:9] <- paste0(c("Mean_", "SD_", "N_"), "LPI_AA150_GT")
 colnames(Val_data_dCTRL_F)[10:12] <- paste0(c("Mean_", "SD_", "N_"), "LPI_AA150_Yield")
 colnames(Val_data_dCTRL_F)[13:15] <- paste0(c("Mean_", "SD_", "N_"), "LPI_AA125_Lag")
 colnames(Val_data_dCTRL_F)[16:18] <- paste0(c("Mean_", "SD_", "N_"), "LPI_AA125_GT")
 colnames(Val_data_dCTRL_F)[19:21] <- paste0(c("Mean_", "SD_", "N_"), "LPI_AA125_Yield")
+```
 
+We will add this recalculated Mean (from 6 independent replicates), sd, and N (number of replicates managed to grow) for all control strains to the final dataset
 
-####################################################################################
-#Checking the correlation between the scan-o-matic LPI and Bioscreen LPI response ##
-####################################################################################
-####################################################################################
+* Removing the control strain data from the **Val_data** dataset. 
 
-#Removing the dCTRL data.Remember that each dCTRL are represented twice in the dataset 
-#as the dCTRL strains are present in both plates (That makes 6 independent replicates each). 
-#We will add for all dCTRL the recalculated Mean, sd, and N after taking all the 6 replicates in to account
+```{r}
+Val_data_curated <- Val_data[-dCTRL_rows, ]
+```
 
-Val_data_dCTRl_removed <- Val_data[-dCTRL_rows, ]
+* Removing also the Blank rows from the data
 
-#Removing also the Blank rows from the data
-Val_data_dCTRl_removed <- Val_data_dCTRl_removed[-which(Val_data_dCTRl_removed$gRNA_name=="BLANK"), ]
+```{r}
+Val_data_curated <- Val_data_curated[-which(Val_data_curated$gRNA_name=="BLANK"), ]
+```
 
-#Trimming all the non-essential column for correlation analysis
-Val_data_dCTRl_removed <- Val_data_dCTRl_removed[, c(2:4, 131:148)]
+* Trimming all the non-essential column for easy data-handling
 
-Validation_LPI_all <- rbind(Val_data_dCTRl_removed, Val_data_dCTRL_F)
+```{r}
+Val_data_column_trimmed <- Val_data_curated[, c(2:4, 131:148)]
+```
 
-write.csv(Validation_LPI_all, "Validation_LPI_all.csv")
+* Binding the column trimmed dataset to the control strain dataset to generate the working data.frame
 
+```{r}
+Validation_LPI_all <- rbind(Val_data_column_trimmed, Val_data_dCTRL_F)
 rownames(Validation_LPI_all) <- Validation_LPI_all$gRNA_name
+str(Validation_LPI_all)
+```
 
-###############################################################
-#Extracting the some additional data from the scan-o-matic data
-###############################################################
 
-#Previously we made a dataset that included scan-o-matic analysis data of all strains selectd for validation
-#ultimately we decided to remove two strains out of this list as they were growing poorly in the basal medium. 
+### STATISTICAL ANALYSIS 
 
-a <- setdiff(validation_strains_data$gRNA_name, Validation_LPI_all$gRNA_name)
-validation_strains_data <- validation_strains_data[!(row.names(validation_strains_data) %in% a), ]
+#### CORRELATION ANALYSIS BETWEEN SCAN_O_MATIC LPI VS BIOSCREEN LPI
 
-#Now we will add a new column with a new identifier that indicates the 50 most acetic acid tolerant
-#and acetic acid sensitive strains in this list. We already had a dataframe with the list of this strains
-#Once again we removed the two strains those werefinally eliminated from the validation experiment
-#Therefore, we had 48 sensitive strains and 50 tolerant strains included in the validation experiment, 
+For correlation analysis, we need to extract the scan-o-matic data for the strains selected for validation experiment
 
-bot_top_50 <- bot_top_50[!(bot_top_50$gRNA_name %in% a), ]
-bot50 <- bot_top_50[1:48, ]
-Top50 <- bot_top_50[49:98, ]
+* extracting the data from the Scan-o-matic analysis dataset
 
-#Extracting the dCTRL strain data from the original scan-o-matic data
+```{r}
+validation_strains_data <- Analysis_Final_3[validation_strains, ]
+```
 
+* Extracting the dCTRL strain data from the original scan-o-matic data
+
+```{r}
 dCTRL_data_scan_o_matic <- Analysis_Final_3[(Analysis_Final_3$gRNA_name %in% dCtrl_strains), ]
+```
 
-#Row Binding the two datasets
+* Data preparation 
 
+```{r}
 validation_strains_data <- rbind(validation_strains_data, dCTRL_data_scan_o_matic)
 
-#setting the row order similar to that of Validation_LPI_all dataset
-
+#setting the row order similar to that of the bioscreen dataset Validation_LPI_all
 validation_strains_data <- validation_strains_data[rownames(Validation_LPI_all), ]
+```
 
-#Now making a new data frame by extracting only the required column from both data.frame
-#i.e. the data.frame that has the scan-o-matic analysis for the validation strains (validation_strains_data) 
-#and the data.frame that has the data of the bioscreen liquid growth experiment (Validation_LPI_all)
+Now making a new data frame by extracting only the required column from both data.frame i.e. the data.frame that has the scan-o-matic analysis for the validation strains (validation_strains_data) and the data.frame that has the data of the bioscreen liquid growth experiment (Validation_LPI_all)
 
+```{r}
 Validation_new_df <- validation_strains_data[, c(1:8, 96:97, 87, 35:40, 98:99, 89, 100, 102, 104:107, 58, 60, 74:79, 84, 86)]
-
 Validation_new_df <- cbind(Validation_new_df, Validation_LPI_all[, 4:21])
+```
 
-#####################################################################################
-#We add a separate column to categorize the strains used in the validation experiment
-######################################################################################
+* Categorizing strains based on their performance in scan-o-matic
 
+We will add a new column with an identifier that indicates the 50 most acetic acid tolerant and acetic acid sensitive strains in this list. We already had a dataframe with the list of this strains i.e. **bot_top_50**
+
+```{r}
+bot50 <- bot_top_50[1:48, ]
+Top50 <- bot_top_50[49:98, ]
+```
+
+We add a separate column to categorize the strains used in the validation experiment
+
+```{r}
 #dCTRL strains (1)
 Validation_new_df[(Validation_new_df$gRNA_name %in% dCtrl_strains), 55] <- 1
-
 #top 50 acetic acid tolerant strains (2),
 Validation_new_df[(Validation_new_df$gRNA_name %in% Top50$gRNA_name), 55] <- 2
-
 #most 50 acetic acid sensitive strains (3),
 Validation_new_df[(Validation_new_df$gRNA_name %in% bot50$gRNA_name), 55] <- 3
-
 #Other candidates (4)
 Validation_new_df[which(is.na(Validation_new_df$V55)), 55] <- 4
-
 #Changing the column name
 colnames(Validation_new_df)[55] <- "Strain_category"
+```
 
+* Scatter plot and linear regression analysis
 
+```{r figure20, echo=FALSE, message=FALSE, fig.cap="Figure 20 (fig. 3): Scatterplot of the relative performance of the strains in liquid medium with 125mM of acetic acid and in solid medium with 150 mM acetic acid (scan-o-matic screening). The linear regression of the data is displayed with a black line. The mean of the three LPI GT replicates of each strain is plotted, control strains in green, acetic acid sensitive strains in red, acetic acid tolerant strains in blue and remaining strains in black. The names of the genes repressed in the tolerant or sensitive strains are indicated in the plot", fig.width=8, fig.height=8}
+plot(Validation_new_df$LPI_GT_Mean_all, Validation_new_df$Mean_LPI_AA125_GT,
+     xlim = c(-0.5, 2),
+     ylim = c(-0.5, 2),
+     pch = 16, 
+     cex = 0.7, 
+     col = "black",
+     xlab = "LPI_GT_Scan-O-Matic at 150mM acetic acid",
+     ylab = "LPI_GT_Bioscreen at 125mM acetic acid")
+points(Validation_new_df$LPI_GT_Mean_all[which(Validation_new_df$Strain_category==1)], 
+       Validation_new_df$Mean_LPI_AA125_GT[which(Validation_new_df$Strain_category==1)], 
+       pch = 16, 
+       cex = 0.8, 
+       col = "green")
+points(Validation_new_df$LPI_GT_Mean_all[which(Validation_new_df$Strain_category==2)], 
+       Validation_new_df$Mean_LPI_AA125_GT[which(Validation_new_df$Strain_category==2)], 
+       pch = 16, 
+       cex = 0.8, 
+       col = "blue")
+points(Validation_new_df$LPI_GT_Mean_all[which(Validation_new_df$Strain_category==3)], 
+       Validation_new_df$Mean_LPI_AA125_GT[which(Validation_new_df$Strain_category==3)], 
+       pch = 16, 
+       cex = 0.8, 
+       col = "red")
+abline(lm(Validation_new_df$Mean_LPI_AA125_GT ~ Validation_new_df$LPI_GT_Mean_all))
+text(Validation_new_df$LPI_GT_Mean_all, 
+     Validation_new_df$Mean_LPI_AA125_GT,
+     labels=Validation_new_df$GENE, 
+     cex= 0.1, 
+     pos = 2)
+stat_GT_125 <- lm(Validation_new_df$Mean_LPI_AA125_GT ~ Validation_new_df$LPI_GT_Mean_all)
+summary(stat_GT_125)
+```
 
+#### CORRELATION BETWEEN PHENOTYPES IN BIOSCREEN EXPERIMENT
+
+```{r}
+print("125mM") 
+print("lag vs GT")
+cor(Validation_new_df$Mean_LPI_AA125_Lag, 
+    Validation_new_df$Mean_LPI_AA125_GT,  
+    method = "pearson", 
+    use = "complete.obs")
+print("lag vs Yield")
+cor(Validation_new_df$Mean_LPI_AA125_Lag, 
+    Validation_new_df$Mean_LPI_AA125_Yield,  
+    method = "pearson", 
+    use = "complete.obs")
+print("GT vs Yield")
+cor(Validation_new_df$Mean_LPI_AA125_GT, 
+    Validation_new_df$Mean_LPI_AA125_Yield,  
+    method = "pearson", 
+    use = "complete.obs")
+print("150mM")  
+print("lag vs GT")
+cor(Validation_new_df$Mean_LPI_AA150_Lag, 
+    Validation_new_df$Mean_LPI_AA150_GT,  
+    method = "pearson", 
+    use = "complete.obs")
+print("lag vs Yield")
+cor(Validation_new_df$Mean_LPI_AA150_Lag, 
+    Validation_new_df$Mean_LPI_AA150_Yield,  
+    method = "pearson", 
+    use = "complete.obs")
+print("GT vs Yield")
+cor(Validation_new_df$Mean_LPI_AA150_GT, 
+    Validation_new_df$Mean_LPI_AA150_Yield,  
+    method = "pearson", 
+    use = "complete.obs")
+```
+
+#### PLOTTING HEATMAP
+
+Visualizing the mean of the replicates of the selected strains
+
+```{r}
+#Make a color palette
+colfunc5<-colorRampPalette(c("goldenrod4", "goldenrod", "white", "turquoise", "turquoise4"))
+plot(rep(1,100), col=colfunc5(100), pch=19,cex=2)
+```
+
+The function colfunc5 when called as colfunc5(100) will create a color pallate of hundred colors where white is the mid point. Therefore, the break argument reqires a numerical vector in increasing order of length 100+1. The range of the break vector should be in such a way that all strains with LPI_ value less than -0.02 gets a shade of goldenrod i.e. the deeper the shade of goldenrod, the more acetic acid tolerant it is. Moreover, color range should be equally distributed. Hence, first we created a vector of 49 eliments with equally distributed numbers **between -0.5 to -0.2**
+
+```{r}
+brk1 <- c(seq(-0.5, -0.05, length.out = 48))
+```
+
+Then **between -0.2 to 0.2**
+
+```{r}
+brk2 <- c(seq(-0.04, 0.04, length.out = 5))
+```
+
+Finally all strains with LPI value greater than 0.02 will have a shade of turquoise. For that we create another numerical vector of 49 numbers equally distributed starting from 0.07 to 2. The deeper the shade more AA sensitive the strain is. This sensitive range is much larger than the fitness window. That is why the distribution space is also larger.
+
+```{r}
+brk3 <- c(seq(0.05, 2, length.out = 48))
+```
+
+Combining we have a numerical vector of length 101 to be used for the break argument
+
+```{r}
+brk_F <- c(brk1, brk2, brk3)
+```
+
+Arranging the rows in decreasing order in terms of their mean phenotypic response (LPI) in generation time under acetc acid condition in the scan-o-matic experiment
+
+```{r}
+Validation_new_df <- Validation_new_df[order(Validation_new_df$LPI_GT_Mean_all, decreasing = TRUE), ]
+```
+
+Therefore, the list generated should have the most AA sensitive strains at the beginning. However, the most AA sensitive strains did not grow in AA condition. Due to missing values(NA) they are positioned in the last 14 rows. We switch them to the front of the list
+
+```{r}
+Validation_new_df <- Validation_new_df[c(170:183, 1:169), ]
+```
+
+**Note**: The LPI_yield values is having an inverse profile with generation time (GT). LPI_Yield is positive for acetic acid tolerant strain i.e. yield is higher than the control strains whereas GT is negative as GT is lower than the control strain. Therefore, we multiplied -1 with the mean LPI_Yield values of the bioscreen output to avoid confusion in color profile and made two separate columns in the data.frame
+
+```{r}
+Validation_new_df[, 56] <- Validation_new_df[, 43]*(-1)
+Validation_new_df[, 57] <- Validation_new_df[, 52]*(-1)
+colnames(Validation_new_df)[56:57] <- c("Mean_LPI_AA150_Yield(-1)", "Mean_LPI_AA125_Yield(-1)")
+```
+
+Now plotting the heat map including the following columns. The index of the columns as in **Validation_new_df** is given in bracket 
+
+* From scan-o-matic data
+  + CTRL_GT_Mean_all [9]
+  + LPI_GT_Mean_all [18]
+* From validation experiment bioscreen 125mM
+  + Mean_LPI_AA125_Lag [46]
+  + Mean_LPI_AA125_GT [49]
+  + (-1) x Mean_LPI_AA125_Yield [57]
+* From validation experiment bioscreen 150mM
+  + Mean_LPI_AA150_Lag [37]
+  + Mean_LPI_AA150_GT [40]
+  + (-1) x Mean_LPI_AA150_Yield [56]
+
+```{r figure21, echo=FALSE, message=FALSE, fig.cap="Figure 21 (fig. S2): Heatmap displaying the relative performance of 183 strains grown in liquid media. Column A and B show the mean LSC or LPI (n=6) of these strains, based on the solid media Scan-o-matic experiments, and columns C-H the mean LPI (n=3) of the strains based on growth in liquid media", fig.width=5, fig.height=40}
+library(pheatmap)
+pheatmap(as.matrix(Validation_new_df[, c(9, 18, 46, 49, 57, 37, 40, 56)]),
+         color = colfunc5(100),
+         breaks = brk_F,
+         border_color = "white",
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         cellwidth = 10,
+         cellheight = 10)
+```
 
 
