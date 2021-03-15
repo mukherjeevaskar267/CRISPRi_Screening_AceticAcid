@@ -18,7 +18,7 @@ All raw data generated in this study is available in the folder **RAW_DATA**. It
 * **SOM_ATC_TITRA** : Scan-o-matic ATc (anhydrous tetracyclin) titration raw data (Plate 7 & 8)
 * **SOM_SCR_R001**  : Scan-o-matic CRISPRi library screening raw data, Round 1
 * **SOM_SCR_R002**  : Scan-o-matic CRISPRi library screening raw data, Round 2
-* **BS_VAL_SCR**    : Bioscreen Validation experiment with selected strains from CRISPRi library raw data
+* **BS_VAL_SCR**    : Bioscreen Validation experiment with selected strains from CRISPRi library raw data.   
        + *STRAIN_MAP_VAL_EXP*: Strains layout in bioscreen plate (well no > strain name)
        + *BS_PRECOG_OUTPUT*  : PRECOG output (Processed and calibrated growth curve, First derivative, phenotypes raw)
 
