@@ -6,7 +6,7 @@ Phenotypic screening of a CRISPRi strain library [Smith et al., 2017](https://do
 We screened a CRISPR interference library consisting of >9000 Saccharomyces cerevisiae strains where >98% of all essential and respiratory growth-essential genes were targeted with multiple gRNAs. This repository is created to offer any user the opportunity to reproduce the entire analysis starting from the raw data.
 
 ## CONTENT 
-The codes described in this project shows how to ** (a) prepare, (b) analyze, and (c) visualize ** the high-throughput phenomics data generated in this study. 
+The codes described in this project shows how to **(a) prepare, (b) analyze, and (c) visualize** the high-throughput phenomics data generated in this study. 
 
 In this project we used two high-thoughput phenomics platform 
 * Scan-o-matic [Zackrisson et al., 2016](https://doi.org/10.1534/g3.116.032342)
