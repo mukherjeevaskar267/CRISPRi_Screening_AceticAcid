@@ -19,8 +19,8 @@ All raw data files generated in this study are available in the folder **RAW_DAT
 * **SOM_SCR_R001**  : Scan-o-matic CRISPRi library screening raw data, Round 1
 * **SOM_SCR_R002**  : Scan-o-matic CRISPRi library screening raw data, Round 2
 * **BS_VAL_SCR**    : Bioscreen Validation experiment with selected strains from CRISPRi library raw data.   
-       + **STRAIN_MAP_VAL_EXP**: Strains layout in bioscreen plate (well no > strain name).   
-       + **BS_PRECOG_OUTPUT**  : PRECOG output (Processed and calibrated growth curve, First derivative, phenotypes raw)
+              + **STRAIN_MAP_VAL_EXP**: Strains layout in bioscreen plate (well no > strain name).   
+              + **BS_PRECOG_OUTPUT**  : PRECOG output (Processed and calibrated growth curve, First derivative, raw phenotypes)
 
 The repository also provides some compiled data for the ease of analysis in the **COMPILED_DATA** folder. 
 Those files will be used while running the script in the CRISPRi_Screening_AceticAcid.Rmd file. 
