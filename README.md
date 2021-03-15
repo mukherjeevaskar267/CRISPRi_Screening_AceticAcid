@@ -10,7 +10,7 @@ The codes described in this project shows how to ** (a) prepare, (b) analyze, an
 
 In this project we used two high-thoughput phenomics platform 
 * Scan-o-matic [Zackrisson et al., 2016](https://doi.org/10.1534/g3.116.032342)
-* Bioscreen microcultivation followed by PRECOG [Fernandez-Ricaud et al, 2016](https://doi.org/10.1186/s12859-016-1134-2) analysis
+* Bioscreen microcultivation followed by PRECOG analysis [Fernandez-Ricaud et al, 2016](https://doi.org/10.1186/s12859-016-1134-2) 
 
 All raw data generated in this study is available in the folder ** RAW_DATA **. It has the following sub folders
 
