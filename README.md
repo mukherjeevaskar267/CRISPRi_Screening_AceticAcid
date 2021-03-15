@@ -12,7 +12,7 @@ In this project we used two high-thoughput phenomics platform
 * Scan-o-matic [Zackrisson et al., 2016](https://doi.org/10.1534/g3.116.032342)
 * Bioscreen microcultivation followed by PRECOG analysis [Fernandez-Ricaud et al, 2016](https://doi.org/10.1186/s12859-016-1134-2) 
 
-All raw data generated in this study is available in the folder **RAW_DATA**. It has the following sub folders
+All raw data files generated in this study are available in the folder **RAW_DATA**. It has the following sub folders
 
 * **SOM_AA_TITRA**  : Scan-o-matic Acetic acid titration raw data (Plate 7 & 8)
 * **SOM_ATC_TITRA** : Scan-o-matic ATc (anhydrous tetracyclin) titration raw data (Plate 7 & 8)
