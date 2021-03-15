@@ -12,15 +12,15 @@ In this project we used two high-thoughput phenomics platform
 * Scan-o-matic [Zackrisson et al., 2016](https://doi.org/10.1534/g3.116.032342)
 * Bioscreen microcultivation followed by PRECOG analysis [Fernandez-Ricaud et al, 2016](https://doi.org/10.1186/s12859-016-1134-2) 
 
-All raw data generated in this study is available in the folder ** RAW_DATA **. It has the following sub folders
+All raw data generated in this study is available in the folder **RAW_DATA**. It has the following sub folders
 
-* SOM_AA_TITRA  : Scan-o-matic Acetic acid titration raw data (Plate 7 & 8)
-* SOM_ATC_TITRA : Scan-o-matic ATc (anhydrous tetracyclin) titration raw data (Plate 7 & 8)
-* SOM_SCR_R001  : Scan-o-matic CRISPRi library screening raw data, Round 1
-* SOM_SCR_R002  : Scan-o-matic CRISPRi library screening raw data, Round 2
-* BS_VAL_SCR    : Bioscreen Validation experiment with selected strains from CRISPRi library raw data
-       + STRAIN_MAP_VAL_EXP: Strains layout in bioscreen plate (well no > strain name)
-       + BS_PRECOG_OUTPUT  : PRECOG output (Processed and calibrated growth curve, First derivative, phenotypes raw)
+* **SOM_AA_TITRA**  : Scan-o-matic Acetic acid titration raw data (Plate 7 & 8)
+* **SOM_ATC_TITRA** : Scan-o-matic ATc (anhydrous tetracyclin) titration raw data (Plate 7 & 8)
+* **SOM_SCR_R001**  : Scan-o-matic CRISPRi library screening raw data, Round 1
+* **SOM_SCR_R002**  : Scan-o-matic CRISPRi library screening raw data, Round 2
+* **BS_VAL_SCR**    : Bioscreen Validation experiment with selected strains from CRISPRi library raw data
+       + *STRAIN_MAP_VAL_EXP*: Strains layout in bioscreen plate (well no > strain name)
+       + *BS_PRECOG_OUTPUT*  : PRECOG output (Processed and calibrated growth curve, First derivative, phenotypes raw)
 
 The repository also provides some compiled data for the ease of analysis in the **COMPILED_DATA** folder. 
 Those files will be used while running the script in the CRISPRi_Screening_AceticAcid.Rmd file. 
