@@ -2521,7 +2521,7 @@ reshape_barplot_dataset8 <- reshape(data=barplot_dataset8, idvar="gRNA_name",
                                     direction="long")
 ```
 
-* Plotting LPI GT with error bars of strains targeting proteasomal genes and of control strains.
+* Plotting LSC GT with error bars of strains targeting proteasomal genes and of control strains
 
 ```{r figure24, echo=FALSE, message=FALSE, fig.cap="Figure 24: Barplot of normalized generation time in liquid medium of CRISPRi strains with gRNAs targeting genes encoding proteasomal subunits (20S CP; core particle, 19S lid or 19S base)", fig.width=7, fig.height=7}
 library(ggplot2)
