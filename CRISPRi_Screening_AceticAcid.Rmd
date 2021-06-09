@@ -2497,6 +2497,45 @@ print("P-value ≤ 0.5")
 test[which(test$P.value_GT_125<=0.05), ]
 ```
 
+#### BAR PLOT (LSC GT) OF STRAINS TARGETING PROTEASOMAL GENES
+
+* Data preparation for the bar plot
+
+```{r}
+Val_data_lsc_mean <- Val_data_curated[, 2:4]
+for(i in 1:nrow(Val_data_curated)){
+  Val_data_lsc_mean[i, 4] <- mean(na.omit(as.numeric(Val_data_curated[i, c(78, 84, 90, 96, 102, 108)])))
+  Val_data_lsc_mean[i, 5] <- sd(na.omit(as.numeric(Val_data_curated[i, c(78, 84, 90, 96, 102, 108)])))
+}
+row.names(Val_data_lsc_mean) <- Val_data_lsc_mean$gRNA_name
+
+barplot_dataset8 <- Val_data_lsc_mean[as.character(barplot_dataset7$gRNA_name), c(1, 4:5)]
+barplot_dataset8 <- barplot_dataset8[-c(1:7), ]
+colnames(barplot_dataset8)[2:3] <- c("LSC_GT", "SD_GT")
+library(reshape)
+reshape_barplot_dataset8 <- reshape(data=barplot_dataset8, idvar="gRNA_name",
+                                    varying = list(colnames(barplot_dataset8)[2], colnames(barplot_dataset8)[3]),
+                                    v.name=c("Mean", "SD"),
+                                    times = c("LSC_GT"),
+                                    new.row.names = 1:10000,
+                                    direction="long")
+```
+
+* Plotting LPI GT with error bars of strains targeting proteasomal genes and of control strains.
+
+```{r figure24, echo=FALSE, message=FALSE, fig.cap="Figure 24: Barplot of normalized generation time in liquid medium of CRISPRi strains with gRNAs targeting genes encoding proteasomal subunits (20S CP; core particle, 19S lid or 19S base)", fig.width=7, fig.height=7}
+library(ggplot2)
+ggplot(reshape_barplot_dataset8, aes(fill=time, y=Mean, x=gRNA_name)) + 
+  geom_bar(position=position_dodge(), stat="identity", color="black", size=0.4, width = 0.6) +
+  geom_errorbar( aes(x=gRNA_name, ymin=Mean-SD, ymax=Mean+SD), position=position_dodge(.9), width=0.2, colour="black", alpha=1, size=0.5)+
+  scale_fill_manual(values=c("white"))+
+  scale_y_continuous(breaks = c(-0.8, -0.5, -0.25, 0, 0.25, 0.5, 0.8),
+                     labels = c("-0.8", "-0.5", "-0.25", "0",  "0.25", "0.5", "0.8"),
+                     limits = c(-0.35, 0.95))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
 #### BOX PLOT (LPI YIELD AND LPI LAG) OF STRAINS TARGETING PROTEASOMAL GENES
 
 ##### LPI YIELD
@@ -2515,7 +2554,7 @@ CP_strains_sig <- CP_strains[c(1:2, 5:7)]
 
 * Plotting box plot for LPI Yield
 
-```{r figure24, echo=FALSE, message=FALSE, fig.cap="Figure 24: (Fig7B in manuscript) Boxplot of relative growth yield in liquid medium with the data of all significantly acetic acid tolerant CRISPRi strains with gRNAs targeting genes encoding proteasomal subunits (20S CP; core particle, 19S lid or 19S base) and the control strains", fig.width=7, fig.height=7}
+```{r figure25, echo=FALSE, message=FALSE, fig.cap="Figure 25: (Fig7B in manuscript) Boxplot of relative growth yield in liquid medium with the data of all significantly acetic acid tolerant CRISPRi strains with gRNAs targeting genes encoding proteasomal subunits (20S CP; core particle, 19S lid or 19S base) and the control strains", fig.width=7, fig.height=7}
 boxplot(as.numeric(as.matrix(Val_whole_data_dCTRL[, c(124, 127, 130)])), 
         as.numeric(as.matrix(Val_data_curated[which(Val_data_curated$gRNA_name %in% LID_strains_sig), c(124, 127, 130)])),
         as.numeric(as.matrix(Val_data_curated[which(Val_data_curated$gRNA_name %in% BASE_strains_sig), c(124, 127, 130)])),
@@ -2544,7 +2583,7 @@ P_val_dCTRL_CP_Yield$p.value
 
 * Plotting box plot for LPI Lag phase 
 
-```{r figure25, echo=FALSE, message=FALSE, fig.cap="Figure 25: (Fig7C in manuscript) Boxplot of relative lag phase in liquid medium with the data of all significantly acetic acid tolerant CRISPRi strains with gRNAs targeting genes encoding proteasomal subunits (20S CP; core particle, 19S lid or 19S base) and the control strains", fig.width=7, fig.height=7}
+```{r figure26, echo=FALSE, message=FALSE, fig.cap="Figure 26: (Fig7C in manuscript) Boxplot of relative lag phase in liquid medium with the data of all significantly acetic acid tolerant CRISPRi strains with gRNAs targeting genes encoding proteasomal subunits (20S CP; core particle, 19S lid or 19S base) and the control strains", fig.width=7, fig.height=7}
 boxplot(as.numeric(as.matrix(Val_whole_data_dCTRL[, c(122, 125, 128)])), 
         as.numeric(as.matrix(Val_data_curated[which(Val_data_curated$gRNA_name %in% LID_strains_sig), c(122, 125, 128)])),
         as.numeric(as.matrix(Val_data_curated[which(Val_data_curated$gRNA_name %in% BASE_strains_sig), c(122, 125, 128)])),
