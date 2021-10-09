@@ -37,7 +37,7 @@ AA_titration_data <- read.csv("COMPILED_DATA/20210120_AA_titration_absolute_comp
 * Install packages: Out of these **ggplot2** and **reshape** will be frequently used later for data visualization
 
 + ggplot2
-+ reshape)
++ reshape
 + ggridges
 
 * Prepare the data in the format requisite for ggplot2 package using reshape
